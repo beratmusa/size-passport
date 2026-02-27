@@ -80,7 +80,7 @@ function App() {
       
       {/* HOST SİTE */}
       <header className="flex items-center justify-between px-6 py-4 md:px-8 md:py-5 border-b border-zinc-100">
-        <h1 className="text-xl font-bold tracking-widest uppercase">Zarif Giyim</h1>
+        <h1 className="text-xl font-bold tracking-widest uppercase">Giyim</h1>
         <div className="flex gap-6 text-sm font-medium text-zinc-500">
           <a href="#" className="hover:text-zinc-900">Erkek</a>
           <a href="#" className="hover:text-zinc-900">Kadın</a>
