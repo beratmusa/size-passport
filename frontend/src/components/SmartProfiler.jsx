@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Beden Listeleri
 const SIZE_CONFIG = {
   letter: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'], 
   inch: ['28', '29', '30', '31', '32', '33', '34', '36', '38'], 
@@ -19,25 +20,26 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
   const [brands, setBrands] = useState([]);
   const [loadingBrands, setLoadingBrands] = useState(true);
 
-  const [selectedGender, setSelectedGender] = useState('kadin'); 
+  // Seçim State'leri
+  const [selectedGender, setSelectedGender] = useState('men'); 
   const [selectedBrand, setSelectedBrand] = useState('');
   
   const category = productCategory || 'top';
-  const subCategory = productSubCategory || 't-shirt';
+  const subCategory = productSubCategory || 'tshirt';
   
-  const [selectedFit, setSelectedFit] = useState('regular'); 
+  const [selectedFit, setSelectedFit] = useState(productFit || 'regular'); 
   const [selectedSize, setSelectedSize] = useState('');
   
+  // Hissiyat (0: Dar, 50: Tam, 100: Bol)
   const [physicalFeel, setPhysicalFeel] = useState(50); 
   const [satisfaction, setSatisfaction] = useState(50);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sizeStandard, setSizeStandard] = useState('letter');
 
-  // 1. MARKALARI ÇEK (Brands tablosundan)
+  // 1. Markaları Çek
   useEffect(() => {
     const fetchBrands = async () => {
-      // Burası 'brands' tablosundan çekmeye devam ediyor (Anne tablo)
       const { data } = await supabase.from('brands').select('*').order('name');
       if (data) setBrands(data);
       setLoadingBrands(false);
@@ -45,11 +47,11 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
     fetchBrands();
   }, []);
 
-  // 2. OTOMATİK STANDART BELİRLEME
+  // 2. Kategoriye Göre Beden Sistemini Ayarla
   useEffect(() => {
     if (subCategory === 'jeans') setSizeStandard('inch');
-    else if (subCategory === 'pants' && selectedGender === 'erkek') setSizeStandard('inch');
-    else if (category === 'bottom' && selectedGender === 'kadin') setSizeStandard('eu');
+    else if (subCategory === 'pants' && selectedGender === 'men') setSizeStandard('inch');
+    else if (category === 'bottom' && selectedGender === 'women') setSizeStandard('eu');
     else setSizeStandard('letter');
     
     setSelectedSize('');
@@ -57,102 +59,49 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
 
   const activeSizeList = SIZE_CONFIG[sizeStandard] || SIZE_CONFIG.letter;
 
-  // 3. ÖLÇÜLERİ ÇEK (YENİ VIEW KULLANILIYOR)
-  const getReferenceMeasurements = async () => {
-    
-    // --- DEĞİŞİKLİK BURADA: 'view_brand_measurements' ---
-    
-    // A. Tam Eşleşme
-    let query = supabase
-      .from('view_brand_measurements') // <--- YENİ TABLO ADI (VIEW)
+  // 3. KAYDETME İŞLEMİ
+  const handleSave = async () => {
+    setIsSubmitting(true);
+
+    // A. SQL View'dan Referans Ölçüyü Çek
+    let { data: refMeas } = await supabase
+      .from('view_smart_variants')
       .select('measurements')
       .eq('brand_id', selectedBrand)
-      .eq('category', category)
       .eq('sub_category', subCategory)
-      .eq('gender', selectedGender)
-      .eq('size_label', selectedSize)
+      .eq('size', selectedSize)
       .eq('fit_type', selectedFit)
       .maybeSingle();
 
-    let { data } = await query;
-    if (data) return data.measurements;
-
-    // B. Marka İçi Yedek (Fit yoksa Regular)
-    if (selectedFit !== 'regular') {
-      const { data: regularData } = await supabase
-        .from('view_brand_measurements') // <--- YENİ TABLO ADI
-        .select('measurements')
-        .eq('brand_id', selectedBrand)
-        .eq('category', category)
-        .eq('sub_category', subCategory)
-        .eq('gender', selectedGender)
-        .eq('size_label', selectedSize)
-        .eq('fit_type', 'regular')
-        .maybeSingle();
-      
-      if (regularData) {
-        let meas = regularData.measurements;
-        // Matematiksel Fit Dönüşümü
-        if (selectedFit === 'slim') return { ...meas, chest: (meas.chest || 0) - 4, waist: (meas.waist || 0) - 4 };
-        if (selectedFit === 'oversize') return { ...meas, chest: (meas.chest || 0) + 8, waist: (meas.waist || 0) + 8 };
-        return meas;
-      }
-    }
-    
-    // C. Global Yedek (Markada yoksa başka markaya bak)
-    const { data: globalData } = await supabase
-      .from('view_brand_measurements') // <--- YENİ TABLO ADI
-      .select('measurements')
-      .eq('category', category)
-      .eq('sub_category', subCategory)
-      .eq('gender', selectedGender)
-      .eq('size_label', selectedSize)
-      .eq('fit_type', 'regular')
-      .limit(1)
-      .maybeSingle();
-
-    if (globalData) return globalData.measurements;
-
-    return null;
-  };
-
-  const handleSave = async () => {
-    setIsSubmitting(true);
-    let base = await getReferenceMeasurements();
-
-    if (!base) {
-      toast("Veri bulunamadı, tahmini kalıp kullanılıyor.", { icon: '⚠️' });
-      if (selectedGender === 'erkek') base = { shoulder: 46, chest: 100, waist: 88, hip: 102, arm: 64, inseam: 82, outseam: 104 };
-      else base = { shoulder: 39, chest: 90, waist: 70, hip: 96, arm: 59, inseam: 78, outseam: 100 };
+    // B. Veri Yoksa Fallback
+    if (!refMeas) {
+      toast("Tam veri bulunamadı, tahmini kalıp kullanılıyor.", { icon: 'ℹ️' });
+      if (category === 'top') refMeas = { measurements: { chest: 100, waist: 90 } };
+      else refMeas = { measurements: { waist: 84, hip: 100, length: 81 } };
     }
 
-    const diffMap = { 0: 5, 25: 2.5, 50: 0, 75: -2.5, 100: -5 };
-    const adjustment = diffMap[physicalFeel] !== undefined ? diffMap[physicalFeel] : 0; 
+    const base = refMeas.measurements || refMeas;
 
-    let estimatedMeasurements = {};
+    // C. Hissiyat Algoritması
+    const adjustment = (50 - physicalFeel) / 4; 
+
+    let bodyMeasurements = {};
 
     if (category === 'top') {
-      estimatedMeasurements = {
-        shoulder_width_cm: Math.round((base.shoulder || 40) + (adjustment * 0.3)),
-        chest_circumference_cm: Math.round(base.chest + adjustment),
-        waist_circumference_cm: Math.round(base.waist + adjustment),
-        hip_circumference_cm: Math.round(base.hip + adjustment),
-        arm_length_cm: Math.round(base.arm || 60),
-        inseam_cm: selectedGender === 'erkek' ? 82 : 78, 
-        outseam_cm: selectedGender === 'erkek' ? 104 : 100
-      };
+      const chestBase = base.chest || base.chest_width || 100;
+      bodyMeasurements.chest = Math.round(chestBase + adjustment);
+      bodyMeasurements.waist = Math.round((chestBase * 0.90) + adjustment); 
+      bodyMeasurements.shoulder = Math.round(chestBase * 0.45);
+      bodyMeasurements.arm = 64; 
     } else {
-      estimatedMeasurements = {
-        shoulder_width_cm: selectedGender === 'erkek' ? 46 : 39, 
-        chest_circumference_cm: selectedGender === 'erkek' ? 100 : 90, 
-        waist_circumference_cm: Math.round(base.waist + adjustment),
-        hip_circumference_cm: Math.round((base.hip || 90) + adjustment),
-        arm_length_cm: selectedGender === 'erkek' ? 64 : 59,
-        inseam_cm: Math.round(base.inseam || (selectedGender === 'erkek' ? 82 : 78)),
-        outseam_cm: Math.round(base.outseam || (selectedGender === 'erkek' ? 104 : 100))
-      };
+      const waistBase = base.waist || base.waist_width || 84;
+      bodyMeasurements.waist = Math.round(waistBase + adjustment);
+      bodyMeasurements.hip = Math.round((waistBase * 1.18) + adjustment);
+      bodyMeasurements.inseam = base.length || base.inseam || 81;
+      bodyMeasurements.outseam = (base.length || 81) + 24;
     }
 
+    // D. Kullanıcı Tercihi
     let userFitPreference = 'regular';
     if (satisfaction === 100) userFitPreference = 'loose'; 
     if (satisfaction === 0) userFitPreference = 'slim';
@@ -160,8 +109,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
     const { error } = await supabase.from('user_profiles').upsert({
       id: session.user.id,
       gender: selectedGender,
-      basic_info: { height_cm: 175, weight_kg: 70 },
-      measurements: estimatedMeasurements,
+      measurements: bodyMeasurements,
       preferences: { 
         default_fit: userFitPreference, 
         reference_brand: selectedBrand, 
@@ -176,21 +124,24 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
       toast.success("Profiliniz başarıyla oluşturuldu!");
       if (onRefreshProfile) await onRefreshProfile();
       setTimeout(() => { if (onClose) onClose(); }, 600);
+    } else {
+      toast.error("Bir hata oluştu.");
     }
   };
 
+  // Helper Labels
   const getFeelLabel = (val) => {
-    if (val === 0) return "Çok Dar (Sıkıyor)";
+    if (val === 0) return "Çok Dar";
     if (val === 25) return "Biraz Dar";
-    if (val === 50) return "Tam (Mükemmel)";
+    if (val === 50) return "Tam";
     if (val === 75) return "Biraz Bol";
-    if (val === 100) return "Çok Bol (Düşüyor)";
+    if (val === 100) return "Çok Bol";
     return "";
   };
   
   const getSatisfactionLabel = (val) => {
     if (val === 0) return "Daha Bol Olmalıydı";
-    if (val === 50) return "Tam İstediğim Gibi";
+    if (val === 50) return "İstediğim Gibi";
     if (val === 100) return "Daha Dar Olmalıydı";
     return "";
   };
@@ -204,18 +155,18 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
           <h2 className="text-2xl font-semibold tracking-tight">Akıllı Beden Asistanı</h2>
           <p className="text-zinc-500 text-sm mt-1">{step === 1 ? 'Referans Marka Seçimi' : 'Detaylı Analiz'}</p>
         </div>
-        {onClose && ( <Button variant="ghost" onClick={onClose} className="rounded-full h-10 w-10 p-0"><svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg></Button> )}
+        {onClose && ( <Button variant="ghost" onClick={onClose} className="rounded-full h-10 w-10 p-0">✕</Button> )}
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-2xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-2xl mx-auto w-full overflow-y-auto">
         
         {/* ADIM 1: MARKA SEÇİMİ */}
         {step === 1 && (
           <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-center mb-6">
               <div className="bg-zinc-100 p-1 rounded-full flex gap-1">
-                 <button onClick={() => setSelectedGender('kadin')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'kadin' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Kadın</button>
-                 <button onClick={() => setSelectedGender('erkek')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'erkek' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Erkek</button>
+                 <button onClick={() => setSelectedGender('women')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'women' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Kadın</button>
+                 <button onClick={() => setSelectedGender('men')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'men' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Erkek</button>
               </div>
             </div>
             <div className="text-center space-y-2"><h3 className="text-3xl font-light text-zinc-900">En sık hangi markayı giyiyorsunuz?</h3></div>
@@ -239,7 +190,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
           <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
             <div className="flex items-center justify-between">
                <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-900 -ml-4">← Marka Değiştir</Button>
-               <span className="bg-zinc-100 text-zinc-600 text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase">{selectedGender === 'kadin' ? 'Kadın' : 'Erkek'}</span>
+               <span className="bg-zinc-100 text-zinc-600 text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase">{selectedGender === 'women' ? 'Kadın' : 'Erkek'}</span>
             </div>
 
             <div className="text-center space-y-2">
@@ -292,7 +243,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
                 </div>
               </div>
 
-              {/* SAĞ KOLON: ÇİFT BAR */}
+              {/* SAĞ KOLON: ÇİFT BAR (DÜZELTİLEN ALAN) */}
               <div className="space-y-4 bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-center">
                 
                 {/* BAR 1: HİSSİYAT */}
@@ -303,13 +254,13 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
                     </div>
                     <Slider defaultValue={[50]} max={100} step={25} value={[physicalFeel]} onValueChange={(val) => setPhysicalFeel(val[0])} className="py-2" />
                     
-                    {/* HİZALAMA */}
-                    <div className="relative h-6 text-[8px] text-zinc-400 font-medium uppercase tracking-tighter mt-1">
-                        <span className="absolute left-0 top-0 text-left w-10 leading-tight">Çok<br/>Dar</span>
-                        <span className="absolute left-[25%] -translate-x-1/2 top-0 text-center w-12 leading-tight">Biraz<br/>Dar</span>
-                        <span className="absolute left-[50%] -translate-x-1/2 top-0 text-center w-10 font-bold text-zinc-600">Tam</span>
-                        <span className="absolute left-[75%] -translate-x-1/2 top-0 text-center w-12 leading-tight">Biraz<br/>Bol</span>
-                        <span className="absolute right-0 top-0 text-right w-10 leading-tight">Çok<br/>Bol</span>
+                    {/* YENİ GRID YAPISI (Kaymaları önler) */}
+                    <div className="grid grid-cols-5 text-[9px] text-zinc-400 font-medium uppercase mt-1">
+                        <span className="text-left leading-tight">Çok<br/>Dar</span>
+                        <span className="text-center leading-tight">Biraz<br/>Dar</span>
+                        <span className="text-center font-bold text-zinc-600">Tam</span>
+                        <span className="text-center leading-tight">Biraz<br/>Bol</span>
+                        <span className="text-right leading-tight">Çok<br/>Bol</span>
                     </div>
                 </div>
 
@@ -323,11 +274,11 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
                     </div>
                     <Slider defaultValue={[50]} max={100} step={50} value={[satisfaction]} onValueChange={(val) => setSatisfaction(val[0])} className="py-2" />
                     
-                    {/* HİZALAMA */}
-                    <div className="relative h-6 text-[8px] text-zinc-400 font-medium uppercase tracking-tighter mt-1">
-                        <span className="absolute left-0 top-0 text-left w-16 leading-tight">Daha Bol<br/>İsterdim</span>
-                        <span className="absolute left-[50%] -translate-x-1/2 top-0 text-center w-12 font-bold text-zinc-800">Mükemmel</span>
-                        <span className="absolute right-0 top-0 text-right w-16 leading-tight">Daha Dar<br/>İsterdim</span>
+                    {/* YENİ FLEX YAPISI */}
+                    <div className="flex justify-between text-[9px] text-zinc-400 font-medium uppercase mt-1">
+                        <span className="text-left w-16 leading-tight">Daha Bol<br/>İsterdim</span>
+                        <span className="text-center w-auto font-bold text-zinc-800">Mükemmel</span>
+                        <span className="text-right w-16 leading-tight">Daha Dar<br/>İsterdim</span>
                     </div>
                 </div>
               </div>
