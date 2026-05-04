@@ -11,13 +11,18 @@ const SAMPLE_PRODUCT = {
   id: 'urun-555',
   name: 'Vintage Straight Jean',
   category: 'bottom',
-  sub_category: 'jeans',
-  fit: 'regular',
-  size: '32',
+  sub_category: 'jean',
+  fit: 'slim',
+  size: '36',
   price: '1.499 TL',
   image: 'https://images.unsplash.com/photo-1582552938357-32b906df40cb?q=80&w=1000&auto=format&fit=crop',
   // Shopify'dan gelen ham veriler
-  measurements: { waist: 84, hip: 100, inseam: 82, outseam: 104 }
+  measurements: {
+  "hip": 116,
+  "waist": 90,
+  "length": 107,
+  "front_rise": 31
+}
 };
 
 const ProductPage = ({ session }) => {
@@ -43,7 +48,7 @@ const ProductPage = ({ session }) => {
 
   const handleSmartCheck = () => {
     if (!session) {
-      toast.error("Lütfen önce giriş yapın.");
+      toast.error("Please login first.");
       return;
     }
     // Profili varsa direkt analize, yoksa sihirbaza yönlendir
@@ -60,9 +65,9 @@ const ProductPage = ({ session }) => {
       
       {/* NAVBAR */}
       <nav className="border-b border-zinc-100 px-8 py-4 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur z-40">
-        <h1 className="text-xl font-bold tracking-tight">Beden Pasaportu</h1>
+        <h1 className="text-xl font-bold tracking-tight">Size Passport</h1>
         <div className="text-sm text-zinc-500">
-           {session ? `Hoşgeldin` : 'Misafir Kullanıcı'}
+           {session ? `Welcome` : 'Guest User'}
         </div>
       </nav>
 
@@ -92,8 +97,8 @@ const ProductPage = ({ session }) => {
 
           <div className="p-6 bg-zinc-50 border border-zinc-200 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Beden Seçimi</span>
-              <a href="#" className="text-xs underline text-zinc-400 hover:text-zinc-900">Beden Tablosu</a>
+              <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Size Selection</span>
+              <a href="#" className="text-xs underline text-zinc-400 hover:text-zinc-900">Size Chart</a>
             </div>
             
             <div className="grid grid-cols-5 gap-2">
@@ -113,14 +118,14 @@ const ProductPage = ({ session }) => {
               className="w-full h-14 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-medium text-sm uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all transform hover:scale-[1.01] flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              {userProfile ? 'Analizi Gör ' : 'Bedenim Ne? (Akıllı Analiz)'}
+              {userProfile ? 'View Analysis ' : 'What is My Size? (Smart Analysis)'}
             </button>
-            <p className="text-xs text-center text-zinc-400">Yapay zeka destekli beden önerisi</p>
+            <p className="text-xs text-center text-zinc-400">AI-powered size recommendation</p>
           </div>
         </div>
       </main>
 
-      {/* --- MODALLAR --- */}
+      {/* --- MODALS --- */}
       
       {/* 1. AKILLI PROFİL SİHİRBAZI */}
       {activeModal === 'wizard' && (

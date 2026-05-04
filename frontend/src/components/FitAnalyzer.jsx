@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { useSmartFit } from '../hooks/useSmartFit'; // <--- YENİ EKLENTİ
+import HumanBodyModel from './HumanBodyModel';
 
 // ZOOM KOORDİNATLARI (AYNEN KALIYOR)
 const ZOOM_CONFIG = {
@@ -41,8 +42,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   // Böylece aşağıdaki SVG kodlarını değiştirmek zorunda kalmıyoruz.
   const getResult = (part) => {
       const d = details?.find(d => d.part === part);
-      // Eğer veri yoksa varsayılan gri döndür
-      return d || { status: 'Veri Yok', color: '#a1a1aa', bg: 'bg-zinc-400', delta: 0 };
+      return d || { status: 'No Data', color: '#a1a1aa', bg: 'bg-zinc-400', delta: 0 };
   };
 
   const results = {
@@ -51,7 +51,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
       waist: getResult('waist'),
       arm: getResult('arm'),
       hip: getResult('hip'),
-      inseam: getResult(category === 'bottom' ? 'length' : 'inseam'), // length -> inseam
+      inseam: getResult('inseam'),
       outseam: getResult('outseam')
   };
 
@@ -59,17 +59,17 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   let listItems = [];
   if (category === 'top') {
     listItems = [
-      { id: 'shoulder', name: 'Omuz Genişliği', data: results.shoulder },
-      { id: 'chest', name: 'Göğüs Çevresi', data: results.chest },
-      { id: 'waist', name: 'Bel Çevresi', data: results.waist },
-      { id: 'arm', name: 'Kol Boyu', data: results.arm },
+      { id: 'shoulder', name: 'Shoulder', data: results.shoulder },
+      { id: 'chest', name: 'Chest', data: results.chest },
+      { id: 'waist', name: 'Waist', data: results.waist },
+      { id: 'arm', name: 'Arm Length', data: results.arm },
     ];
   } else {
     listItems = [
-      { id: 'waist', name: 'Bel Çevresi', data: results.waist },
-      { id: 'hip', name: 'Basen/Kalça', data: results.hip },
-      { id: 'inseam', name: 'İç Bacak', data: results.inseam },
-      { id: 'outseam', name: 'Dış Bacak', data: results.outseam },
+      { id: 'waist', name: 'Waist', data: results.waist },
+      { id: 'hip', name: 'Hips', data: results.hip },
+      { id: 'inseam', name: 'Inseam', data: results.inseam },
+      { id: 'outseam', name: 'Outseam', data: results.outseam },
     ];
   }
   // --- DEĞİŞİKLİK BURADA BİTİYOR ---
@@ -105,7 +105,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`w-2 h-2 rounded-full animate-pulse ${score > 80 ? 'bg-emerald-500' : 'bg-yellow-500'}`}></span>
-              <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">Canlı Beden Analizi</span>
+              <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">Live Fit Analysis</span>
             </div>
             <h2 className="text-lg md:text-xl font-medium tracking-tight text-zinc-800">
               {productData.name} <span className="font-light text-zinc-500 ml-1">({productData.size})</span>
@@ -114,7 +114,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
           
           <div className="flex items-center gap-2 md:gap-4">
             <Button variant="outline" onClick={onUpdateProfile} className="hidden sm:flex rounded-full text-[10px] md:text-xs uppercase tracking-wider h-8 md:h-9 px-4 border-zinc-200 text-zinc-600 hover:text-zinc-900">
-              Pasaportu Güncelle
+              Update Passport
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 h-8 w-8 md:h-10 md:w-10">
               <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -131,60 +131,19 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
              {/* Not: Buradaki <motion.svg> içeriği senin attığın dosyadakiyle birebir aynı kalacak. */}
              {/* Sadece `fill={results.shoulder.color}` gibi kısımlar zaten yukarıda results objesini tanımladığımız için çalışacak. */}
              
-             <motion.svg initial={{ viewBox: coords.full }} animate={svgControls} className="h-[90%] w-auto relative z-0 drop-shadow-sm">
-                {/* ... SVG İÇERİĞİ (Senin dosyadakiyle aynı) ... */}
-                {/* Örn: <ellipse cx="150" cy="115" rx="55" ry="18" fill={results.shoulder.color} ... /> */}
-                {/* SVG Kodunu buraya kopyala-yapıştır yapman yeterli, results objesi uyumlu hale getirildi. */}
-                
-                {/* Senin dosyadaki SVG içeriğini buraya aynen yapıştıracağım: */}
-                 <defs><filter id="thermal" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter></defs>
-                  {category === 'top' ? (
-                    <>
-                      <g className="text-zinc-300 stroke-current fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M 130 50 C 130 30, 170 30, 170 50 C 170 70, 160 80, 150 90 C 140 80, 130 70, 130 50 Z" />
-                        <path d="M 150 90 Q 150 110 195 120 L 220 280 M 150 90 Q 150 110 105 120 L 80 280" />
-                        <path d="M 115 125 L 125 320 Q 150 330 175 320 L 185 125" />
-                        <path d="M 125 320 L 105 540 L 125 550 L 145 350 M 175 320 L 195 540 L 175 550 L 155 350" />
-                      </g>
-                      <g filter="url(#thermal)" className="mix-blend-multiply opacity-70">
-                        <ellipse cx="150" cy="115" rx="55" ry="18" fill={results.shoulder.color} className={`transition-all duration-700 ${activeZone && activeZone !== 'shoulder' ? 'opacity-5 scale-95' : 'opacity-100 scale-100'}`} />
-                        <ellipse cx="150" cy="170" rx="42" ry="25" fill={results.chest.color} className={`transition-all duration-700 ${activeZone && activeZone !== 'chest' ? 'opacity-5 scale-95' : 'opacity-100 scale-100'}`} />
-                        <ellipse cx="150" cy="270" rx="38" ry="22" fill={results.waist.color} className={`transition-all duration-700 ${activeZone && activeZone !== 'waist' ? 'opacity-5 scale-95' : 'opacity-100 scale-100'}`} />
-                        <g className={`transition-all duration-700 ${activeZone && activeZone !== 'arm' ? 'opacity-5' : 'opacity-100'}`}>
-                          <line x1="108" y1="140" x2="85" y2="250" stroke={results.arm.color} strokeWidth="20" strokeLinecap="round" />
-                          <line x1="192" y1="140" x2="215" y2="250" stroke={results.arm.color} strokeWidth="20" strokeLinecap="round" />
-                        </g>
-                      </g>
-                    </>
-                  ) : (
-                    <>
-                      <g className="text-zinc-300 stroke-current fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M 110 180 Q 150 190 190 180" />
-                        <path d="M 110 180 Q 90 220 100 350 L 85 550 L 115 560 L 145 280" /> 
-                        <path d="M 190 180 Q 210 220 200 350 L 215 550 L 185 560 L 155 280" /> 
-                        <path d="M 145 280 Q 150 290 155 280" />
-                      </g>
-                      <g filter="url(#thermal)" className="mix-blend-multiply opacity-70">
-                        <ellipse cx="150" cy="180" rx="40" ry="12" fill={results.waist.color} className={`transition-all duration-700 ${activeZone && activeZone !== 'waist' ? 'opacity-5 scale-95' : 'opacity-100 scale-100'}`} />
-                        <ellipse cx="150" cy="230" rx="55" ry="15" fill={results.hip.color} className={`transition-all duration-700 ${activeZone && activeZone !== 'hip' ? 'opacity-5 scale-95' : 'opacity-100 scale-100'}`} />
-                        <g className={`transition-all duration-700 ${activeZone && activeZone !== 'inseam' ? 'opacity-5' : 'opacity-100'}`}>
-                           <line x1="145" y1="280" x2="115" y2="560" stroke={results.inseam.color} strokeWidth="15" strokeLinecap="round" />
-                           <line x1="155" y1="280" x2="185" y2="560" stroke={results.inseam.color} strokeWidth="15" strokeLinecap="round" />
-                        </g>
-                        <g className={`transition-all duration-700 ${activeZone && activeZone !== 'outseam' ? 'opacity-5' : 'opacity-100'}`}>
-                           <line x1="100" y1="220" x2="85" y2="550" stroke={results.outseam.color} strokeWidth="10" strokeLinecap="round" />
-                           <line x1="200" y1="220" x2="215" y2="550" stroke={results.outseam.color} strokeWidth="10" strokeLinecap="round" />
-                        </g>
-                      </g>
-                    </>
-                  )}
-             </motion.svg>
+             <HumanBodyModel 
+                category={category} 
+                results={results} 
+                activeZone={activeZone} 
+                svgControls={svgControls} 
+                coords={coords} 
+             />
           </div>
 
           {/* LİSTELER (SAĞ TARAF) */}
           <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-center bg-white border-l border-zinc-100 z-10">
             <motion.h3 className="text-sm uppercase tracking-[0.2em] text-zinc-400 font-semibold mb-6">
-              {category === 'top' ? 'Üst Beden Uyumu' : 'Alt Beden Uyumu'}
+              {category === 'top' ? 'Top Body Fit' : 'Bottom Body Fit'}
             </motion.h3>
             
             <div className="flex flex-col gap-3">
@@ -201,15 +160,15 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
                     <div className="flex flex-col items-start gap-1">
                       <span className="text-xs md:text-sm font-medium text-zinc-700 leading-none">{item.name}</span>
                       <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
-                        <span title="Senin Ölçün">{item.data.user || '?'} cm</span>
+                        <span title="Your Size">{item.data.user || '?'} cm</span>
                         <svg className="w-3 h-3 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        <span title="Ürün Ölçüsü" className="text-zinc-600 font-semibold">{item.data.product || '?'} cm</span>
+                        <span title="Product Size" className="text-zinc-600 font-semibold">{item.data.product || '?'} cm</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex justify-end flex-shrink-0 ml-2">
                     <span className="whitespace-nowrap text-[10px] uppercase tracking-widest px-2.5 py-1.5 rounded-md font-semibold border" style={{ color: item.data.color, backgroundColor: `${item.data.color}15`, borderColor: `${item.data.color}30` }}>
-                      {item.data.status} {item.data.status !== 'Veri Yok' && `(${item.data.delta}cm)`}
+                      {item.data.status} {item.data.status !== 'No Data' && `(${item.data.delta}cm)`}
                     </span>
                   </div>
                 </motion.div>
@@ -227,10 +186,10 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
                   <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <p className="text-xs md:text-sm font-light text-zinc-300 leading-relaxed pr-4">
-                  Bu analiz ölçülerinize ve (<strong className="text-white">{userProfile?.preferences?.default_fit || 'Normal'}</strong>) kesim tercihinize göre hesaplanmıştır.
+                  This analysis is calculated based on your measurements and (<strong className="text-white">{userProfile?.preferences?.default_fit || 'Regular'}</strong>) fit preference.
                 </p>
               </div>
-              <Button variant="secondary" className="relative z-10 w-full md:w-auto h-10 md:h-12 px-8 rounded-full text-xs md:text-sm font-medium">Sepete Ekle</Button>
+              <Button variant="secondary" className="relative z-10 w-full md:w-auto h-10 md:h-12 px-8 rounded-full text-xs md:text-sm font-medium">Add to Cart</Button>
         </div>
       </motion.div>
     </motion.div>

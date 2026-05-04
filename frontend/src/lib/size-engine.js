@@ -1,24 +1,28 @@
-/**
- * 1. NORMALİZASYON: Gelen karışık veriyi (Shopify/DB) standart hale getirir.
- */
 export const normalizeMeasurements = (rawData, category = 'top') => {
   if (!rawData) return null;
   const clean = {};
 
   const MAP = {
-    chest: ['chest', 'bust', 'chest_width', 'gogus', 'width', 'chest_circumference_cm'],
-    waist: ['waist', 'waist_width', 'bel', 'waist_circumference_cm'],
-    hip: ['hip', 'hip_width', 'basen', 'kalca', 'hip_circumference_cm'],
-    shoulder: ['shoulder', 'shoulder_width', 'omuz', 'shoulder_width_cm'],
-    length: ['length', 'total_length', 'boy', 'inseam', 'ic_bacak', 'inseam_cm'],
-    arm: ['arm', 'sleeve', 'kol', 'arm_length_cm'],
-    outseam: ['outseam', 'dis_bacak', 'outseam_cm']
+    // Üst Giyim
+    chest: ['chest', 'bust', 'width', 'gogus'], // Zara: Chest (Side to side)
+    shoulder: ['shoulder', 'omuz'],
+    arm: ['arm', 'sleeve', 'kol'],
+    length: ['length', 'front_length', 'total_length', 'boy'], // Zara: Front Length (Shoulder to hem)
+
+    // Alt Giyim
+    waist: ['waist', 'bel'], // Zara: Waist (Highest part side to side)
+    hip: ['hip', 'basen', 'kalca'], // Zara: Hip (Widest part side to side)
+    outseam: ['outseam', 'length', 'dis_bacak'], // Jean Boyu
+    inseam: ['inseam', 'ic_bacak'],
+    front_rise: ['front_rise', 'on_ag'], // Zara: Front Rise
+    back_rise: ['back_rise', 'arka_ag']  // Zara: Back Rise
   };
 
   Object.keys(rawData).forEach(key => {
     const val = parseFloat(rawData[key]);
     if (isNaN(val)) return;
 
+    // Anahtarı bul
     const standardKey = Object.keys(MAP).find(k => 
       MAP[k].some(alias => key.toLowerCase().includes(alias))
     );
@@ -26,54 +30,53 @@ export const normalizeMeasurements = (rawData, category = 'top') => {
     if (standardKey) {
       let finalVal = val;
       
-      // --- AKILLI DÖNÜŞÜM ALGORİTMASI --- //
+      // --- ZARA "SIDE TO SIDE" KURALI (Yarım En -> Tam Çevre) ---
       
-      // SENARYO 1: İnç Tespiti (Sadece Bel ve Boy için)
-      // Değer 24 ile 40 arasındaysa ve kategori Alt Giyim ise bu muhtemelen İnçtir.
-      // Örn: 32 inç bel = 81cm. (Eğer yarım en olsaydı 32*2=64cm olurdu, bu da çocuk bedeni gibi kalırdı)
-      if (['waist', 'length', 'inseam'].includes(standardKey) && val > 24 && val < 42) {
-         // Ancak kategori "top" ise (T-shirt), 40cm yarım göğüs olabilir. O yüzden kategori kontrolü şart.
-         if (category === 'bottom' || category === 'jeans') {
-             finalVal = val * 2.54; // İnç -> CM dönüşümü
-         } else {
-             finalVal = val * 2; // Üst giyimde 40cm yarım endir -> 80cm
-         }
+      // 1. Bel, Basen ve Göğüs Kontrolü
+      // Zara 40cm bel veriyorsa bu yarım endir. 40 * 2 = 80cm Çevre yapar.
+      // (60cm'den küçük tüm "genişlik" ölçülerini yarım en kabul ediyoruz)
+      if (['chest', 'waist', 'hip'].includes(standardKey)) {
+        if (val < 65) {
+            finalVal = val * 2; 
+        }
+        // NOT: İnç (Jeans Size) kontrolünü burada yapmıyoruz çünkü Zara verisi
+        // Product Definition'dan CM olarak geliyor.
       }
       
-      // SENARYO 2: Yarım En Tespiti (CM)
-      // Değer 65'ten küçükse ve yukarıdaki inç kuralına takılmadıysa, yarım endir.
-      else if (['chest', 'waist', 'hip'].includes(standardKey) && val < 65) {
-        finalVal *= 2; 
-      }
-      
+      // 2. İnç Kontrolü (Sadece Kullanıcı Profili veya Dış Kaynaklar için)
+      // Eğer kategori Bottom ise ve Bel 26-38 arasındaysa bu İNÇ bedenidir.
+      // Ancak Zara verisi (Side-to-side) ile karışmaması için bunu sadece
+      // "waist" 40'ın altındaysa ve "hip" yoksa gibi kompleks kontrollerle ayırabiliriz.
+      // Şimdilik Zara'nın CM verdiğini bildiğimiz için üstteki kural yeterli.
+
       clean[standardKey] = Math.round(finalVal);
     }
   });
 
-  // Eksik veri tamamlama (Imputation)
+  // EKSİK VERİ TAMAMLAMA (Fallback)
   if (category === 'top' || category === 'tshirt') {
       if (clean.chest && !clean.shoulder) clean.shoulder = Math.round(clean.chest * 0.45);
       if (clean.chest && !clean.waist) clean.waist = Math.round(clean.chest * 0.90);
-      if (!clean.arm) clean.arm = 25; 
+      if (!clean.arm) clean.arm = 20; 
+      if (!clean.length) clean.length = 70;
   } else {
-      // Eğer boy (length/inseam) yoksa standart 32 inç (81cm) ata
-      if (!clean.length) clean.length = 81;
-      
-      // Eğer basen yoksa belden türet
+      // Bottom
       if (clean.waist && !clean.hip) clean.hip = Math.round(clean.waist * 1.18);
-      
-      // Dış bacak (Outseam) yoksa iç bacak + 24cm (bel yüksekliği)
-      if (!clean.outseam) clean.outseam = clean.length + 24;
+      // Eğer Jean boyu yoksa standart ver
+      if (!clean.outseam && !clean.length) clean.outseam = 105;
+      // Eğer boy var ama outseam yoksa eşle
+      if (!clean.outseam && clean.length) clean.outseam = clean.length;
   }
 
   return clean;
 };
 
-// ... (getStatusColor ve calculateFitScore fonksiyonları aynı kalacak) ...
 export const getStatusColor = (diff) => {
-    if (diff < -2) return { status: 'Dar', color: '#ef4444', bg: 'bg-red-500' };
-    if (diff > 8) return { status: 'Bol', color: '#3b82f6', bg: 'bg-blue-500' };
-    return { status: 'Kusursuz', color: '#10b981', bg: 'bg-emerald-500' };
+  if (Math.abs(diff) <= 2) return { status: 'Perfect', color: '#10b981', bg: 'bg-emerald-500' };
+  if (diff > 2 && diff <= 5) return { status: 'Slightly Loose', color: '#6366f1', bg: 'bg-indigo-500' };
+  if (diff > 5) return { status: 'Too Loose', color: '#3b82f6', bg: 'bg-blue-500' };
+  if (diff < -2 && diff >= -5) return { status: 'Slightly Tight', color: '#f59e0b', bg: 'bg-amber-500' };
+  return { status: 'Too Tight', color: '#ef4444', bg: 'bg-red-500' };
 };
 
 export const calculateFitScore = (userMeas, productMeas, category) => {
@@ -85,15 +88,28 @@ export const calculateFitScore = (userMeas, productMeas, category) => {
   
   const keys = (category === 'top' || category === 'tshirt') 
     ? ['shoulder', 'chest', 'waist', 'arm'] 
-    : ['waist', 'hip', 'length', 'outseam'];
+    : ['waist', 'hip', 'inseam', 'outseam']; 
 
   keys.forEach(key => {
-    let pKey = key === 'inseam' ? 'length' : key; // Eşleşme düzeltmesi
-    let uKey = key === 'inseam' ? 'length' : key;
+    let pKey = key;
+    let uKey = key;
 
-    // length, inseam_cm, inseam gibi farklı isimleri yakala
-    const uVal = userMeas[uKey] || userMeas['inseam_cm'] || userMeas['inseam'];
-    const pVal = productMeas[pKey] || productMeas['inseam'] || productMeas['length'];
+    // Eşleşmeler
+    if (key === 'length') {
+         if (!productMeas['length'] && productMeas['front_length']) pKey = 'front_length';
+    }
+    if (key === 'outseam') {
+        if (!productMeas['outseam'] && productMeas['length']) pKey = 'length';
+        if (!userMeas['outseam'] && userMeas['length']) uKey = 'length';
+    }
+
+    const uVal = userMeas[uKey];
+    let pVal = productMeas[pKey];
+    
+    // Inseam hesaplaması: Eğer ürün ölçülerinde inseam yoksa, length(outseam) - front_rise ile bul
+    if (key === 'inseam' && !pVal && productMeas['length'] && productMeas['front_rise']) {
+        pVal = productMeas['length'] - productMeas['front_rise'];
+    }
 
     if (uVal && pVal) {
       const diff = pVal - uVal;
@@ -120,7 +136,51 @@ export const calculateFitScore = (userMeas, productMeas, category) => {
   
   return {
     score: Math.round(finalScore),
-    recommendation: finalScore > 85 ? 'Sana Tam Uyacak' : finalScore > 60 ? 'Biraz Riskli' : 'Beden Uygun Değil',
+    recommendation: finalScore > 85 ? 'Perfect Fit' : finalScore > 60 ? 'Slightly Risky' : 'Not Recommended',
     details
   };
+};
+
+// KULLANICI ÖLÇÜLERİNİ TAHMİN ETME (SmartProfiler'dan taşındı)
+export const estimateUserMeasurements = (baseMeasurements, physicalFeel, category) => {
+  const base = baseMeasurements;
+  const adjustment = (50 - physicalFeel) / 4; 
+  let bodyMeasurements = {};
+
+  if (category === 'top') {
+    const chestBase = base.chest || base.chest_width || 100;
+    bodyMeasurements.chest = Math.round(chestBase + adjustment);
+    bodyMeasurements.waist = Math.round((base.waist || base.waist_width || (chestBase * 0.90)) + adjustment); 
+    bodyMeasurements.shoulder = Math.round(base.shoulder || base.shoulder_width || (chestBase * 0.45));
+    bodyMeasurements.arm = base.arm || base.sleeve || base.sleeve_length || 64; 
+  } else {
+    const waistBase = base.waist || base.waist_width || 84;
+    bodyMeasurements.waist = Math.round(waistBase + adjustment);
+    bodyMeasurements.hip = Math.round((base.hip || base.hip_width || (waistBase * 1.18)) + adjustment);
+    
+    const lengthVal = base.length || base.total_length || base.outseam;
+    const frontRise = base.front_rise || 25;
+    
+    let inseamVal = base.inseam;
+    let outseamVal = lengthVal;
+    
+    if (!inseamVal && outseamVal) {
+      if (outseamVal > 90) {
+         inseamVal = outseamVal - frontRise; // length is probably outseam
+      } else {
+         inseamVal = outseamVal; // length is probably inseam
+         outseamVal = inseamVal + frontRise;
+      }
+    } else if (!outseamVal && inseamVal) {
+      outseamVal = inseamVal + frontRise;
+    } else if (!inseamVal && !outseamVal) {
+      inseamVal = 81;
+      outseamVal = inseamVal + frontRise;
+    }
+
+    bodyMeasurements.inseam = Math.round(inseamVal);
+    bodyMeasurements.outseam = Math.round(outseamVal);
+  }
+
+  return bodyMeasurements;
 };
