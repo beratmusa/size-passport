@@ -1,0 +1,59 @@
+<div id="size-passport-root" 
+     data-product-id="{{ product.id }}"
+     data-product-title="{{ product.title | escape }}"
+     data-shop-domain="{{ shop.domain }}"
+     data-product-type="{{ product.type | escape }}"
+     data-product-vendor="{{ product.vendor | escape }}"
+     style="margin: 12px 0;">
+</div>
+
+<style>
+  /* Shopify tema stillerinin widget'ı etkilemesini önlüyoruz */
+  #size-passport-root {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  #size-passport-root *,
+  #size-passport-root *::before,
+  #size-passport-root *::after {
+    box-sizing: border-box;
+  }
+  /* Modal'ın Shopify header'ının altına düşmemesi için z-index override */
+  #size-passport-root .fixed {
+    z-index: 999999 !important;
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Size Passport",
+  "target": "section",
+  "javascript": "size-passport.js",
+  "stylesheet": "size-passport.css",
+  "settings": [
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary Color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Button Style",
+      "options": [
+        { "value": "full", "label": "Full Width" },
+        { "value": "auto", "label": "Auto Width" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "Find My Size (AI)"
+    }
+  ]
+}
+{% endschema %}
