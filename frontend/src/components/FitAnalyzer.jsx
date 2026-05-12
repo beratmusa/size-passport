@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Button } from "@/components/ui/button";
-import { useSmartFit } from '../hooks/useSmartFit'; // <--- YENİ EKLENTİ
+import { useSmartFit } from '../hooks/useSmartFit';
+import { predictBestSize } from '../lib/size-engine';
 import HumanBodyModel from './HumanBodyModel';
 
 // ZOOM KOORDİNATLARI (AYNEN KALIYOR)
@@ -29,6 +30,14 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   
   const category = productData.category === 'bottom' ? 'bottom' : 'top';
   const coords = ZOOM_CONFIG[category];
+
+  // AI Size Prediction
+  const aiPrediction = useMemo(() => {
+    if (!userProfile?.measurements || !productData?.size_data) return null;
+    return predictBestSize(userProfile, productData.size_data, productData.category);
+  }, [userProfile, productData]);
+
+  const hasRecommendation = aiPrediction && aiPrediction.size !== productData.size;
 
   // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
   // Hook kullanarak hesaplamayı dışarıdan alıyoruz
@@ -107,13 +116,22 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
               <span className={`w-2 h-2 rounded-full animate-pulse ${score > 80 ? 'bg-emerald-500' : 'bg-yellow-500'}`}></span>
               <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">Live Fit Analysis</span>
             </div>
-            <h2 className="text-lg md:text-xl font-medium tracking-tight text-zinc-800">
+            <h2 className="text-lg md:text-xl font-medium tracking-tight text-zinc-800 truncate max-w-[150px] sm:max-w-none">
               {productData.name} <span className="font-light text-zinc-500 ml-1">({productData.size})</span>
             </h2>
+            {aiPrediction && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-sm">✨</span>
+                <span className="text-[10px] sm:text-xs font-medium text-indigo-600">
+                  AI Recommends: <strong>{aiPrediction.size}</strong>
+                </span>
+                <span className="hidden xs:inline text-[9px] text-zinc-400">({aiPrediction.score}% match)</span>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-2 md:gap-4">
-            <Button variant="outline" onClick={onUpdateProfile} className="hidden sm:flex rounded-full text-[10px] md:text-xs uppercase tracking-wider h-8 md:h-9 px-4 border-zinc-200 text-zinc-600 hover:text-zinc-900">
+            <Button variant="outline" onClick={onUpdateProfile} className="flex rounded-full text-[10px] md:text-xs uppercase tracking-wider h-8 md:h-9 px-3 md:px-4 border-zinc-200 text-zinc-600 hover:text-zinc-900">
               Update Passport
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 h-8 w-8 md:h-10 md:w-10">
@@ -123,51 +141,49 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
         </div>
 
         {/* ORTA İÇERİK */}
-        <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden bg-[#F6F6F6]">
+        <div className="flex-1 flex flex-col md:flex-row overflow-y-auto bg-[#F6F6F6] min-h-0">
           
-          {/* SVG ALANI (Senin Orijinal SVG Kodların Buraya Gelecek) */}
-          <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8 relative min-h-[400px] md:min-h-0">
-             {/* ... SVG KODUNU AYNEN KORUYORUZ ... */}
-             {/* Not: Buradaki <motion.svg> içeriği senin attığın dosyadakiyle birebir aynı kalacak. */}
-             {/* Sadece `fill={results.shoulder.color}` gibi kısımlar zaten yukarıda results objesini tanımladığımız için çalışacak. */}
-             
-             <HumanBodyModel 
-                category={category} 
-                results={results} 
-                activeZone={activeZone} 
-                svgControls={svgControls} 
-                coords={coords} 
-             />
+          {/* SVG ALANI */}
+          <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 relative min-h-[300px] md:min-h-0 bg-zinc-50/50">
+             <div className="w-full h-full max-h-[400px] md:max-h-[550px] flex items-center justify-center">
+               <HumanBodyModel 
+                  category={category} 
+                  results={results} 
+                  activeZone={activeZone} 
+                  svgControls={svgControls} 
+                  coords={coords} 
+               />
+             </div>
           </div>
 
           {/* LİSTELER (SAĞ TARAF) */}
-          <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-center bg-white border-l border-zinc-100 z-10">
-            <motion.h3 className="text-sm uppercase tracking-[0.2em] text-zinc-400 font-semibold mb-6">
+          <div className="w-full md:w-1/2 p-5 md:p-8 flex flex-col justify-center bg-white border-l border-zinc-100 z-10">
+            <motion.h3 className="text-[10px] md:text-sm uppercase tracking-[0.2em] text-zinc-400 font-semibold mb-4 md:mb-6">
               {category === 'top' ? 'Top Body Fit' : 'Bottom Body Fit'}
             </motion.h3>
             
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5 md:gap-3">
               {listItems.map((item, index) => (
                 <motion.div 
                   key={item.id}
                   initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + (index * 0.1) }}
                   onMouseEnter={() => { setActiveZone(item.id); svgControls.start({ viewBox: ZOOM_CONFIG[category][item.id], transition: { duration: 0.6 }}); }}
                   onMouseLeave={() => { setActiveZone(null); svgControls.start({ viewBox: ZOOM_CONFIG[category].full, transition: { duration: 0.6 }}); }}
-                  className="group flex items-center justify-between p-3.5 rounded-xl border border-zinc-100 hover:border-zinc-300 hover:shadow-sm bg-white cursor-pointer transition-colors duration-300"
+                  className="group flex items-center justify-between p-3 rounded-xl border border-zinc-100 hover:border-zinc-300 hover:shadow-sm bg-white cursor-pointer transition-colors duration-300"
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.data.bg} shadow-inner`}></div>
-                    <div className="flex flex-col items-start gap-1">
-                      <span className="text-xs md:text-sm font-medium text-zinc-700 leading-none">{item.name}</span>
-                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${item.data.bg} shadow-inner`}></div>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-[11px] md:text-sm font-medium text-zinc-700 leading-none">{item.name}</span>
+                      <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-mono">
                         <span title="Your Size">{item.data.user || '?'} cm</span>
-                        <svg className="w-3 h-3 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        <svg className="w-2.5 h-2.5 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         <span title="Product Size" className="text-zinc-600 font-semibold">{item.data.product || '?'} cm</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex justify-end flex-shrink-0 ml-2">
-                    <span className="whitespace-nowrap text-[10px] uppercase tracking-widest px-2.5 py-1.5 rounded-md font-semibold border" style={{ color: item.data.color, backgroundColor: `${item.data.color}15`, borderColor: `${item.data.color}30` }}>
+                    <span className="whitespace-nowrap text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-md font-semibold border" style={{ color: item.data.color, backgroundColor: `${item.data.color}15`, borderColor: `${item.data.color}30` }}>
                       {item.data.status} {item.data.status !== 'No Data' && `(${item.data.delta}cm)`}
                     </span>
                   </div>
@@ -177,19 +193,28 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
           </div>
         </div>
 
-        {/* FOOTER - Aynen kalıyor */}
-        <div className="flex-none bg-zinc-900 text-white flex flex-col md:flex-row items-start md:items-center justify-between p-6 md:px-8 md:py-6 relative overflow-hidden">
-             {/* ... Footer içeriği senin kodundakiyle aynı ... */}
+        {/* FOOTER */}
+        <div className="flex-none bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between p-4 md:px-8 md:py-5 relative overflow-hidden">
              <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-blue-500/20 to-transparent blur-2xl"></div>
-              <div className="flex items-center gap-4 relative z-10 w-full md:w-3/4 mb-4 md:mb-0">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <div className="flex items-center gap-3 md:gap-4 relative z-10 w-full sm:w-3/4 mb-3 sm:mb-0">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                  {hasRecommendation ? ( <span className="text-lg">✨</span> ) : ( <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> )}
                 </div>
-                <p className="text-xs md:text-sm font-light text-zinc-300 leading-relaxed pr-4">
-                  This analysis is calculated based on your measurements and (<strong className="text-white">{userProfile?.preferences?.default_fit || 'Regular'}</strong>) fit preference.
-                </p>
+                {hasRecommendation ? (
+                  <p className="text-[10px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
+                    Based on your <strong className="text-white">{aiPrediction.preference}</strong> fit preference, we recommend size <strong className="text-indigo-400 text-sm md:text-base">{aiPrediction.size}</strong> instead of {productData.size}.
+                  </p>
+                ) : (
+                  <p className="text-[10px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
+                    {aiPrediction ? (
+                      <>Size <strong className="text-emerald-400">{productData.size}</strong> is your match! ({aiPrediction.score}% fit score)</>
+                    ) : (
+                      <>Analysis based on your measurements and preference.</>
+                    )}
+                  </p>
+                )}
               </div>
-              <Button variant="secondary" className="relative z-10 w-full md:w-auto h-10 md:h-12 px-8 rounded-full text-xs md:text-sm font-medium">Add to Cart</Button>
+              <Button variant="secondary" className="relative z-10 w-full sm:w-auto h-9 md:h-11 px-6 md:px-8 rounded-full text-[10px] md:text-sm font-medium">Add to Cart</Button>
         </div>
       </motion.div>
     </motion.div>

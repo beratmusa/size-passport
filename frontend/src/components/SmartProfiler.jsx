@@ -13,7 +13,7 @@ const SIZE_CONFIG = {
   inch: ['28', '29', '30', '31', '32', '33', '34', '36', '38']
 };
 
-const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, productSubCategory }) => {
+const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory }) => {
   const [step, setStep] = useState(1);
   const [brands, setBrands] = useState([]);
   const [fitOptions, setFitOptions] = useState([]); 
@@ -24,7 +24,10 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
   const [selectedBrand, setSelectedBrand] = useState('');
   
   // Kategori Yönetimi
-  const category = productCategory || 'top';
+  // Normalize category to 'top' or 'bottom' for database consistency
+  const rawCategory = (productCategory || 'top').toLowerCase();
+  const category = (rawCategory === 'bottom' || rawCategory === 'pants' || rawCategory === 'jeans' || rawCategory === 'shorts') ? 'bottom' : 'top';
+  
   const [selectedSubCategory, setSelectedSubCategory] = useState(productSubCategory || 'tshirt');
   
   const [selectedFit, setSelectedFit] = useState('regular'); 
@@ -103,7 +106,8 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
   useEffect(() => {
     if (variantData.length > 0) {
       const filteredData = variantData.filter(d => d.sub_category === selectedSubCategory);
-      const uniqueFits = [...new Set(filteredData.map(d => d.fit_type).filter(Boolean))];
+      // Ensure strict filtering by lowercasing and trimming fit types
+      const uniqueFits = [...new Set(filteredData.map(d => d.fit_type?.toLowerCase().trim()).filter(Boolean))];
       
       const systems = [...new Set(filteredData.map(d => d.size_system).filter(sys => sys))].sort();
       setAvailableSystems(systems);
@@ -128,7 +132,8 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
       setBrandSizes(uniqueSizes);
       
       setSelectedFit(prev => {
-        if (uniqueFits.length > 0 && !uniqueFits.includes(prev)) {
+        const lowerPrev = prev.toLowerCase().trim();
+        if (uniqueFits.length > 0 && !uniqueFits.includes(lowerPrev)) {
           return uniqueFits[0];
         }
         return prev;
@@ -143,7 +148,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
     
     // 2. Markaya özel kesim filtresi (veritabanında o markanın kesimleri varsa)
     if (brandFits.length > 0) {
-      return brandFits.includes(fit.name);
+      return brandFits.includes(fit.name.toLowerCase().trim());
     }
     
     return true; 
@@ -194,8 +199,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
     if (satisfaction === 100) userFitPreference = 'loose'; 
     if (satisfaction === 0) userFitPreference = 'slim';
 
-    const { error } = await supabase.from('user_profiles').upsert({
-      id: session.user.id,
+    const profileData = {
       gender: selectedGender,
       measurements: bodyMeasurements,
       preferences: { 
@@ -204,13 +208,25 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
         reference_size: selectedSize 
       },
       updated_at: new Date()
-    });
+    };
+
+    let error = null;
+    if (session?.user?.id) {
+      profileData.id = session.user.id;
+      const res = await supabase.from('user_profiles').upsert(profileData);
+      error = res.error;
+    }
 
     setIsSubmitting(false);
 
     if (!error) {
-      toast.success("Profile created successfully!");
-      if (onRefreshProfile) await onRefreshProfile();
+      if (!session?.user?.id && onGuestProfileCreated) {
+        toast.success("Guest profile created!");
+        onGuestProfileCreated(profileData);
+      } else {
+        toast.success("Profile created successfully!");
+        if (onRefreshProfile) await onRefreshProfile();
+      }
       setTimeout(() => { if (onClose) onClose(); }, 600);
     } else {
       toast.error("An error occurred.");
@@ -237,18 +253,18 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
   return (
     <div className="h-full w-full bg-white flex flex-col font-sans text-zinc-900 selection:bg-zinc-200">
       
-      <header className="flex-none py-6 px-8 border-b border-zinc-100 flex items-center justify-between">
+      <header className="flex-none py-4 px-6 md:py-6 md:px-8 border-b border-zinc-100 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Smart Fit Assistant</h2>
-          <p className="text-zinc-500 text-sm mt-1">{step === 1 ? 'Reference Brand Selection' : 'Detailed Analysis'}</p>
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Smart Fit Assistant</h2>
+          <p className="text-zinc-500 text-[10px] md:text-sm mt-0.5 md:mt-1">{step === 1 ? 'Reference Brand Selection' : 'Detailed Analysis'}</p>
         </div>
-        {onClose && ( <Button variant="ghost" onClick={onClose} className="rounded-full h-10 w-10 p-0">✕</Button> )}
+        {onClose && ( <Button variant="ghost" onClick={onCancel || onClose} className="rounded-full h-8 w-8 md:h-10 md:w-10 p-0">✕</Button> )}
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-2xl mx-auto w-full overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 w-full max-w-none overflow-y-auto">
         
         {step === 1 && (
-          <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="w-full max-w-2xl space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <BrandSelectionStep 
               selectedGender={selectedGender}
               setSelectedGender={setSelectedGender}
@@ -260,19 +276,19 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
         )}
 
         {step === 2 && (
-          <div className="w-full space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+          <div className="w-full max-w-4xl space-y-4 md:space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
             <div className="flex items-center justify-between">
-               <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-900 -ml-4">← Change Brand</Button>
-               <span className="bg-zinc-100 text-zinc-600 text-[10px] font-bold px-3 py-1 rounded-full tracking-widest uppercase">{selectedGender === 'women' ? 'Women' : 'Men'}</span>
+               <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-900 -ml-2 md:-ml-4 text-xs">← Change Brand</Button>
+               <span className="bg-zinc-100 text-zinc-600 text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-full tracking-widest uppercase">{selectedGender === 'women' ? 'Women' : 'Men'}</span>
             </div>
 
-            <div className="text-center space-y-2">
-                <h3 className="text-3xl font-light text-zinc-900">
+            <div className="text-center space-y-1 md:space-y-2">
+                <h3 className="text-xl md:text-3xl font-light text-zinc-900">
                     What is your size in <span className="capitalize font-medium">{brands.find(b => b.id === selectedBrand)?.name || selectedBrand}</span>?
                 </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
               <SizeFitSelectionStep 
                 selectedSubCategory={selectedSubCategory}
                 setSelectedSubCategory={setSelectedSubCategory}
@@ -298,7 +314,7 @@ const SmartProfiler = ({ session, onClose, onRefreshProfile, productCategory, pr
               />
             </div>
 
-            <Button onClick={handleSave} disabled={!selectedSize || isSubmitting} className="w-full h-14 rounded-full text-sm uppercase tracking-widest shadow-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.01]">{isSubmitting ? "Calculating..." : "Analyze"}</Button>
+            <Button onClick={handleSave} disabled={!selectedSize || isSubmitting} className="w-full h-12 md:h-14 rounded-full text-xs md:text-sm uppercase tracking-widest shadow-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.01]">{isSubmitting ? "Calculating..." : "Analyze"}</Button>
           </div>
         )}
       </div>

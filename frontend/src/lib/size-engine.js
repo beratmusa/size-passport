@@ -184,3 +184,83 @@ export const estimateUserMeasurements = (baseMeasurements, physicalFeel, categor
 
   return bodyMeasurements;
 };
+
+// AI BEDEN TAHMİNİ (Kullanıcı tercihine göre modifiye edilmiş skor)
+export const calculateAIFitScore = (userMeas, productMeas, category, preference) => {
+  if (!userMeas || !productMeas) return null;
+
+  let totalDiff = 0;
+  let count = 0;
+  
+  const keys = (category === 'top' || category === 'tshirt') 
+    ? ['shoulder', 'chest', 'waist', 'arm'] 
+    : ['waist', 'hip', 'inseam', 'outseam']; 
+
+  keys.forEach(key => {
+    let pKey = key;
+    let uKey = key;
+
+    if (key === 'length') {
+         if (!productMeas['length'] && productMeas['front_length']) pKey = 'front_length';
+    }
+    if (key === 'outseam') {
+        if (!productMeas['outseam'] && productMeas['length']) pKey = 'length';
+        if (!userMeas['outseam'] && userMeas['length']) uKey = 'length';
+    }
+
+    const uVal = userMeas[uKey];
+    let pVal = productMeas[pKey];
+    
+    if (key === 'inseam' && !pVal && productMeas['length'] && productMeas['front_rise']) {
+        pVal = productMeas['length'] - productMeas['front_rise'];
+    }
+
+    if (uVal && pVal) {
+      const diff = pVal - uVal; // Pozitif: Ürün büyük (bol), Negatif: Ürün küçük (dar)
+      let penalty = 0;
+      
+      if (preference === 'loose') {
+        // Kullanıcı daha bol seviyor.
+        if (diff < -1) penalty = Math.abs(diff) * 6; // Dar ise büyük ceza
+        else if (diff > 10) penalty = (diff - 10) * 1.5; // Bol ise daha az ceza
+      } else if (preference === 'slim') {
+        // Kullanıcı daha dar seviyor.
+        if (diff < -4) penalty = Math.abs(diff) * 5; // Çok dar ise ceza
+        else if (diff > 3) penalty = (diff - 3) * 3; // Biraz bile bol olsa ceza
+      } else {
+        // Regular (Varsayılan)
+        if (diff < -2) penalty = Math.abs(diff) * 5;
+        else if (diff > 8) penalty = (diff - 8) * 2;
+      }
+      
+      totalDiff += penalty;
+      count++;
+    }
+  });
+
+  if (count === 0) return 0;
+  return Math.max(0, 100 - (totalDiff / count));
+};
+
+export const predictBestSize = (userProfile, availableSizes, category) => {
+  if (!userProfile?.measurements || !availableSizes || availableSizes.length === 0) return null;
+  
+  const preference = userProfile.preferences?.default_fit || 'regular';
+  
+  let bestSize = null;
+  let bestScore = -1;
+
+  availableSizes.forEach(sizeData => {
+    const score = calculateAIFitScore(userProfile.measurements, sizeData.measurements, category, preference);
+    if (score !== null && score > bestScore) {
+      bestScore = score;
+      bestSize = sizeData.size;
+    }
+  });
+
+  return {
+    size: bestSize,
+    score: Math.round(bestScore),
+    preference
+  };
+};
