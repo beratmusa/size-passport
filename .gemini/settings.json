@@ -2,6 +2,15 @@
   "mcpServers": {
     "supabase": {
       "httpUrl": "https://mcp.supabase.com/mcp"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "./size-passport-app",
+        "./frontend"
+      ]
     }
   }
 }

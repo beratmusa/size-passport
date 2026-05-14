@@ -16,6 +16,17 @@ function initSizePassport() {
     const productTitle = container.dataset.productTitle;
     const shopDomain = container.dataset.shopDomain;
 
+    // CTA Configuration from Shopify Editor
+    const config = {
+      ctaType: container.dataset.ctaType || 'link',
+      ctaAlign: container.dataset.ctaAlign || 'flex-start',
+      ctaPaddingX: parseInt(container.dataset.ctaPaddingX) || 12,
+      ctaPaddingY: parseInt(container.dataset.ctaPaddingY) || 8,
+      ctaBorderRadius: parseInt(container.dataset.ctaBorderRadius) || 8,
+      ctaBgColor: container.dataset.ctaBgColor || '#000000',
+      ctaTextColor: container.dataset.ctaTextColor || '#000000',
+    };
+
     try {
       // Loading mesajını kaldırdık, React doğrudan render edecek.
       const root = createRoot(container);
@@ -25,6 +36,7 @@ function initSizePassport() {
             productId={productId} 
             productTitle={productTitle} 
             shopDomain={shopDomain} 
+            config={config}
           />
         </StrictMode>
       );

@@ -56,7 +56,6 @@ export const normalizeMeasurements = (rawData, category = 'top') => {
   // EKSİK VERİ TAMAMLAMA (Fallback)
   if (category === 'top' || category === 'tshirt') {
       if (clean.chest && !clean.shoulder) clean.shoulder = Math.round(clean.chest * 0.45);
-      if (clean.chest && !clean.waist) clean.waist = Math.round(clean.chest * 0.90);
       if (!clean.arm) clean.arm = 20; 
       if (!clean.length) clean.length = 70;
   } else {
@@ -87,8 +86,8 @@ export const calculateFitScore = (userMeas, productMeas, category) => {
   const details = [];
   
   const keys = (category === 'top' || category === 'tshirt') 
-    ? ['shoulder', 'chest', 'waist', 'arm'] 
-    : ['waist', 'hip', 'inseam', 'outseam']; 
+    ? ['shoulder', 'chest', 'waist', 'arm', 'length'] 
+    : ['waist', 'hip', 'inseam', 'outseam', 'length']; 
 
   keys.forEach(key => {
     let pKey = key;
@@ -193,8 +192,8 @@ export const calculateAIFitScore = (userMeas, productMeas, category, preference)
   let count = 0;
   
   const keys = (category === 'top' || category === 'tshirt') 
-    ? ['shoulder', 'chest', 'waist', 'arm'] 
-    : ['waist', 'hip', 'inseam', 'outseam']; 
+    ? ['shoulder', 'chest', 'waist', 'arm', 'length'] 
+    : ['waist', 'hip', 'inseam', 'outseam', 'length']; 
 
   keys.forEach(key => {
     let pKey = key;
@@ -263,4 +262,40 @@ export const predictBestSize = (userProfile, availableSizes, category) => {
     score: Math.round(bestScore),
     preference
   };
+};
+
+export const sortSizes = (sizes) => {
+  const sizeOrder = [
+    '3XS', '2XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL',
+    '32', '34', '36', '38', '40', '42', '44', '46', '48', '50', '52', '54', '56', '58', '60',
+    '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '38'
+  ];
+
+  const getWeight = (sizeLabel) => {
+    const label = String(sizeLabel).toUpperCase().trim();
+    
+    // 1. Predefined listesi kontrolü
+    const index = sizeOrder.indexOf(label);
+    if (index !== -1) return index;
+
+    // 2. Sayısal değer kontrolü (40, 42, 32W vb.)
+    const numericMatch = label.match(/^(\d+)/);
+    if (numericMatch) {
+      return 1000 + parseInt(numericMatch[1]);
+    }
+
+    // 3. Bilinmeyenler en sona
+    return 5000;
+  };
+
+  return [...sizes].sort((a, b) => {
+    const labelA = typeof a === 'string' ? a : a.label;
+    const labelB = typeof b === 'string' ? b : b.label;
+    
+    const weightA = getWeight(labelA);
+    const weightB = getWeight(labelB);
+
+    if (weightA !== weightB) return weightA - weightB;
+    return labelA.localeCompare(labelB, undefined, { numeric: true });
+  });
 };

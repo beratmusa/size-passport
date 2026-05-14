@@ -6,29 +6,30 @@ import { Button } from "@/components/ui/button";
 import BrandSelectionStep from './profiler/BrandSelectionStep';
 import SizeFitSelectionStep from './profiler/SizeFitSelectionStep';
 import FeedbackSliders from './profiler/FeedbackSliders';
-import { estimateUserMeasurements } from '../lib/size-engine';
+import { estimateUserMeasurements, sortSizes } from '../lib/size-engine';
+import { detectProductCategory, detectProductGender } from '../lib/utils';
 
 const SIZE_CONFIG = {
   letter: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'], 
   inch: ['28', '29', '30', '31', '32', '33', '34', '36', '38']
 };
 
-const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory }) => {
+const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory, productName }) => {
   const [step, setStep] = useState(1);
   const [brands, setBrands] = useState([]);
   const [fitOptions, setFitOptions] = useState([]); 
   const [loadingData, setLoadingData] = useState(true);
 
+  // Akıllı Algılama Fonksiyonları
+  const detectedGender = detectProductGender(productCategory, productName);
+  const category = detectProductCategory(productCategory, productName);
+
   // Seçim State'leri
-  const [selectedGender, setSelectedGender] = useState('men'); 
+  const [selectedGender, setSelectedGender] = useState(detectedGender || 'men'); 
   const [selectedBrand, setSelectedBrand] = useState('');
   
   // Kategori Yönetimi
-  // Normalize category to 'top' or 'bottom' for database consistency
-  const rawCategory = (productCategory || 'top').toLowerCase();
-  const category = (rawCategory === 'bottom' || rawCategory === 'pants' || rawCategory === 'jeans' || rawCategory === 'shorts') ? 'bottom' : 'top';
-  
-  const [selectedSubCategory, setSelectedSubCategory] = useState(productSubCategory || 'tshirt');
+  const [selectedSubCategory, setSelectedSubCategory] = useState(productSubCategory || (category === 'bottom' ? 'pants' : 'tshirt'));
   
   const [selectedFit, setSelectedFit] = useState('regular'); 
   const [selectedSize, setSelectedSize] = useState('');
@@ -126,8 +127,7 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
              uniqueSizesMap.set(key, { label: d.size, rawSize: d.size, system: d.size_system });
          }
       });
-      const uniqueSizes = Array.from(uniqueSizesMap.values()).sort((a,b) => a.rawSize.localeCompare(b.rawSize, undefined, {numeric: true}));
-      
+      const uniqueSizes = sortSizes(Array.from(uniqueSizesMap.values()));      
       setBrandFits(uniqueFits);
       setBrandSizes(uniqueSizes);
       
@@ -271,6 +271,7 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
               brands={brands}
               loadingData={loadingData}
               onSelectBrand={(id) => { setSelectedBrand(id); setStep(2); }}
+              hideGenderSelection={!!detectedGender}
             />
           </div>
         )}

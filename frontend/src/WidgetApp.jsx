@@ -8,7 +8,7 @@ import useProductData from './hooks/useProductData';
 import SmartProfiler from './components/SmartProfiler';
 import FitAnalyzer from './components/FitAnalyzer';
 
-export default function WidgetApp({ productId, productTitle, shopDomain }) {
+export default function WidgetApp({ productId, productTitle, shopDomain, config = {} }) {
   const [session, setSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   
@@ -64,9 +64,6 @@ export default function WidgetApp({ productId, productTitle, shopDomain }) {
   // Prepare product data for analyzer
   const selectedProductData = useMemo(() => {
     if (!product || sizes.length === 0) return null;
-    // We assume the selected size is calculated inside or defaults to the last size if not selected.
-    // For the widget, the store page has its own size selector, but we might not have access to it directly.
-    // Let's pass the first size or generic product data for now.
     const defaultSize = sizes[0]?.size;
     const sizeEntry = sizes.find(s => s.size === defaultSize);
     return {
@@ -77,8 +74,6 @@ export default function WidgetApp({ productId, productTitle, shopDomain }) {
     };
   }, [product, sizes]);
 
-  // Product verisi henüz gelmemiş veya hata olsa bile butonu göstermeye devam et
-  // Sadece yükleme durumunda spinner göster
   if (loading) {
     return (
       <div className="flex items-center justify-center p-2">
@@ -87,17 +82,63 @@ export default function WidgetApp({ productId, productTitle, shopDomain }) {
     );
   }
 
+  const isButton = config.ctaType === 'button';
+  
+  const ctaStyle = isButton ? {
+    backgroundColor: config.ctaBgColor || '#000000',
+    color: config.ctaTextColor || '#ffffff', // For button we usually want contrast, but letting them choose. Wait, default text color in shopify config was #000000. Let's stick to config.ctaTextColor.
+    padding: `${config.ctaPaddingY || 8}px ${config.ctaPaddingX || 12}px`,
+    borderRadius: `${config.ctaBorderRadius || 8}px`,
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    cursor: 'pointer',
+    width: config.ctaAlign === 'stretch' ? '100%' : 'auto',
+    fontWeight: 500,
+    transition: 'opacity 0.2s',
+  } : {
+    color: config.ctaTextColor || '#000000',
+    padding: `${config.ctaPaddingY || 8}px ${config.ctaPaddingX || 12}px`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    cursor: 'pointer',
+    background: 'transparent',
+    border: 'none',
+    borderBottom: '1px solid currentColor',
+    width: config.ctaAlign === 'stretch' ? '100%' : 'auto',
+    fontWeight: 500,
+  };
+
+  // Buton içinde "link" ise icon renklerini vs buna göre ayarlayalım
+  const iconBgColor = isButton ? 'transparent' : '#000000'; // if it's a solid button, maybe no background for icon
+  const iconColor = isButton ? 'currentColor' : '#ffffff';
+
   return (
-    <div className="size-passport-widget font-sans">
+    <div className="size-passport-widget font-sans w-full" style={{ display: 'flex', justifyContent: config.ctaAlign === 'stretch' ? 'center' : (config.ctaAlign || 'flex-start') }}>
       <Toaster position="top-center" containerStyle={{ zIndex: 10000002 }} />
       
-      {/* SİHİRLİ BUTON (MAĞAZA ÜRÜN SAYFASINDA GÖRÜNECEK TEK ŞEY) */}
       <button 
         onClick={handleSmartCheck}
-        className="w-full h-14 px-6 bg-zinc-900 text-white rounded-lg font-semibold text-base hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 shadow-sm"
+        style={ctaStyle}
+        className="group hover:opacity-80 transition-all duration-300 text-sm md:text-base"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        {userProfile ? 'View Fit Analysis' : 'Find My Size (AI)'}
+        <span 
+          className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full transition-colors"
+          style={isButton ? {} : { backgroundColor: iconBgColor, color: iconColor }}
+        >
+          <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </span>
+        <span className="tracking-tight italic">
+          {userProfile ? 'View My Fit Analysis' : 'Find My Size with AI'}
+        </span>
+        <svg className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+        </svg>
       </button>
 
       {/* MODALS */}
@@ -130,6 +171,7 @@ export default function WidgetApp({ productId, productTitle, shopDomain }) {
               productCategory={product?.category || 'tops'}
               productSubCategory={product?.sub_category || 't-shirt'}
               productFit={product?.fit_type || 'regular'}
+              productName={product?.name || productTitle}
 
               
               onRefreshProfile={() => session && fetchUserProfile(session.user.id)}

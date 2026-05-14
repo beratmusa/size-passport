@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../size-passport/extensions/size-passport-block/assets',
+    outDir: '../size-passport-app/extensions/size-passport-block/assets',
     emptyOutDir: false, // Don't empty so we don't accidentally wipe other shopify assets
     cssCodeSplit: false,
     rollupOptions: {

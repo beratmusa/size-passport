@@ -21,9 +21,26 @@ export const action = async ({ request }) => {
       is_active: payload.status === 'active',
     };
 
-    const { error } = await supabase
+    // Manual Upsert: First check if it exists
+    const { data: existingProduct } = await supabase
       .from("merchant_products")
-      .upsert(productData, { onConflict: 'shopify_product_id' });
+      .select("id")
+      .eq("shopify_product_id", productData.shopify_product_id)
+      .maybeSingle();
+
+    let error;
+    if (existingProduct) {
+      const { error: updateError } = await supabase
+        .from("merchant_products")
+        .update(productData)
+        .eq("id", existingProduct.id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase
+        .from("merchant_products")
+        .insert(productData);
+      error = insertError;
+    }
     
     if (error) {
       console.error("Error updating product in Supabase:", error);

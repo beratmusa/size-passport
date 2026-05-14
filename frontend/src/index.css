@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+#size-passport-root {
+  /* Scoped Reset - Sadece widget içinde çalışacak temel ayarlar */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#size-passport-root *, 
+#size-passport-root *::before, 
+#size-passport-root *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+
+#size-passport-root button {
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  -webkit-appearance: button;
+}
+
+#size-passport-root .bg-primary { background-color: #18181b; }
+#size-passport-root .text-primary-foreground { color: #fafafa; }
+#size-passport-root .bg-secondary { background-color: #f4f4f5; }
+#size-passport-root .text-secondary-foreground { color: #18181b; }
+
+/* Select ve Modal içerikleri için portal üzerinden gelen kısımlar */
+.bg-popover { background-color: #ffffff !important; }
+.text-popover-foreground { color: #09090b !important; }
+.border { border-width: 1px !important; }
+
 @layer base {
   :root {
     --background: 0 0% 100%;

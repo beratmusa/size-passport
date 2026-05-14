@@ -4,6 +4,13 @@
      data-shop-domain="{{ shop.domain }}"
      data-product-type="{{ product.type | escape }}"
      data-product-vendor="{{ product.vendor | escape }}"
+     data-cta-type="{{ block.settings.cta_type }}"
+     data-cta-align="{{ block.settings.cta_align }}"
+     data-cta-padding-x="{{ block.settings.cta_padding_x }}"
+     data-cta-padding-y="{{ block.settings.cta_padding_y }}"
+     data-cta-border-radius="{{ block.settings.cta_border_radius }}"
+     data-cta-bg-color="{{ block.settings.cta_bg_color }}"
+     data-cta-text-color="{{ block.settings.cta_text_color }}"
      style="margin: 12px 0;">
 </div>
 
@@ -13,6 +20,8 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: {{ block.settings.cta_align }};
   }
   #size-passport-root *,
   #size-passport-root *::before,
@@ -33,26 +42,65 @@
   "stylesheet": "size-passport.css",
   "settings": [
     {
-      "type": "color",
-      "id": "primary_color",
-      "label": "Primary Color",
-      "default": "#000000"
+      "type": "select",
+      "id": "cta_type",
+      "label": "Display Style",
+      "options": [
+        { "value": "button", "label": "Solid Button" },
+        { "value": "link", "label": "Text Link" }
+      ],
+      "default": "link"
     },
     {
       "type": "select",
-      "id": "button_style",
-      "label": "Button Style",
+      "id": "cta_align",
+      "label": "Alignment",
       "options": [
-        { "value": "full", "label": "Full Width" },
-        { "value": "auto", "label": "Auto Width" }
+        { "value": "flex-start", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Right" },
+        { "value": "stretch", "label": "Full Width" }
       ],
-      "default": "full"
+      "default": "flex-start"
     },
     {
-      "type": "text",
-      "id": "button_text",
-      "label": "Button Text",
-      "default": "Find My Size (AI)"
+      "type": "color",
+      "id": "cta_bg_color",
+      "label": "Button Background Color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "CTA Text Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_x",
+      "label": "Horizontal Padding (px)",
+      "min": 0,
+      "max": 60,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_y",
+      "label": "Vertical Padding (px)",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "label": "Corner Rounding (px)",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 8
     }
   ]
 }

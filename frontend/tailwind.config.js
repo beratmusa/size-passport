@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ["class"],
+    important: '#size-passport-root',
+    corePlugins: {
+      preflight: false,
+    },
     content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",

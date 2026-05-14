@@ -3,6 +3,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { useSmartFit } from '../hooks/useSmartFit';
 import { predictBestSize } from '../lib/size-engine';
+import { detectProductCategory } from '../lib/utils';
 import HumanBodyModel from './HumanBodyModel';
 
 // ZOOM KOORDİNATLARI (AYNEN KALIYOR)
@@ -12,13 +13,15 @@ const ZOOM_CONFIG = {
     chest: "50 80 200 200",
     waist: "50 180 200 200",
     arm: "0 80 300 300",
-    full: "0 0 300 600"
+    length: "50 100 200 300",
+    full: "50 30 200 350" // Odaklanmış ve büyütülmüş görünüm
   },
   bottom: {
     waist: "50 150 200 200",
     hip: "50 200 200 200",
     inseam: "80 250 140 300",
     outseam: "0 200 300 400",
+    length: "50 200 200 350",
     full: "0 150 300 450"
   }
 };
@@ -28,7 +31,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   const [activeZone, setActiveZone] = useState(null);
   const svgControls = useAnimation();
   
-  const category = productData.category === 'bottom' ? 'bottom' : 'top';
+  const category = detectProductCategory(productData.category, productData.name);
   const coords = ZOOM_CONFIG[category];
 
   // AI Size Prediction
@@ -61,7 +64,8 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
       arm: getResult('arm'),
       hip: getResult('hip'),
       inseam: getResult('inseam'),
-      outseam: getResult('outseam')
+      outseam: getResult('outseam'),
+      length: getResult('length')
   };
 
   // Liste Elemanlarını Hazırla
@@ -72,6 +76,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
       { id: 'chest', name: 'Chest', data: results.chest },
       { id: 'waist', name: 'Waist', data: results.waist },
       { id: 'arm', name: 'Arm Length', data: results.arm },
+      { id: 'length', name: 'Total Length', data: results.length },
     ];
   } else {
     listItems = [
@@ -81,6 +86,9 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
       { id: 'outseam', name: 'Outseam', data: results.outseam },
     ];
   }
+
+  // Sadece verisi olan (No Data olmayan) alanları göster
+  const filteredListItems = listItems.filter(item => item.data.status !== 'No Data');
   // --- DEĞİŞİKLİK BURADA BİTİYOR ---
 
   // --- AŞAĞISI SENİN ORİJİNAL KODUNLA AYNI ---
@@ -90,7 +98,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
     const runAnimationSequence = async () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       // Dar olan bölgelere zoom yap
-      const tightZones = listItems.filter(item => item.data.status === 'Dar').map(i => i.id);
+      const tightZones = filteredListItems.filter(item => item.data.status === 'Dar').map(i => i.id);
       
       for (const zone of tightZones) {
         setActiveZone(zone);
@@ -106,8 +114,8 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   if (!isReady) return null;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-0 md:p-6 font-sans text-zinc-900">
-      <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="bg-white w-full h-full md:max-w-4xl md:h-[80vh] md:rounded-[2rem] flex flex-col overflow-hidden shadow-2xl">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4 md:p-6 font-sans text-zinc-900">
+      <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="bg-white w-full h-[85vh] md:max-w-4xl md:h-[80vh] rounded-[1.5rem] md:rounded-[2rem] flex flex-col overflow-hidden shadow-2xl relative">
         
         {/* HEADER */}
         <div className="flex-none flex items-center justify-between px-6 py-4 md:px-8 md:py-5 border-b border-zinc-100 bg-white z-10">
@@ -163,7 +171,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
             </motion.h3>
             
             <div className="flex flex-col gap-2.5 md:gap-3">
-              {listItems.map((item, index) => (
+              {filteredListItems.map((item, index) => (
                 <motion.div 
                   key={item.id}
                   initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + (index * 0.1) }}
@@ -194,18 +202,18 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
         </div>
 
         {/* FOOTER */}
-        <div className="flex-none bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between p-4 md:px-8 md:py-5 relative overflow-hidden">
+        <div className="flex-none bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between p-5 md:px-8 md:py-5 relative overflow-hidden">
              <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-blue-500/20 to-transparent blur-2xl"></div>
-              <div className="flex items-center gap-3 md:gap-4 relative z-10 w-full sm:w-3/4 mb-3 sm:mb-0">
+              <div className="flex items-center gap-3 md:gap-4 relative z-10 w-full sm:w-3/4 mb-4 sm:mb-0">
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
                   {hasRecommendation ? ( <span className="text-lg">✨</span> ) : ( <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> )}
                 </div>
                 {hasRecommendation ? (
-                  <p className="text-[10px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
+                  <p className="text-[11px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
                     Based on your <strong className="text-white">{aiPrediction.preference}</strong> fit preference, we recommend size <strong className="text-indigo-400 text-sm md:text-base">{aiPrediction.size}</strong> instead of {productData.size}.
                   </p>
                 ) : (
-                  <p className="text-[10px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
+                  <p className="text-[11px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
                     {aiPrediction ? (
                       <>Size <strong className="text-emerald-400">{productData.size}</strong> is your match! ({aiPrediction.score}% fit score)</>
                     ) : (
@@ -214,7 +222,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
                   </p>
                 )}
               </div>
-              <Button variant="secondary" className="relative z-10 w-full sm:w-auto h-9 md:h-11 px-6 md:px-8 rounded-full text-[10px] md:text-sm font-medium">Add to Cart</Button>
+              <Button variant="secondary" className="relative z-10 w-full sm:w-auto h-10 md:h-11 px-8 md:px-8 rounded-full text-[12px] md:text-sm font-medium shadow-lg active:scale-95 transition-transform">Add to Cart</Button>
         </div>
       </motion.div>
     </motion.div>
