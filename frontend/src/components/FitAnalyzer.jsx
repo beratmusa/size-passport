@@ -32,13 +32,14 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
   const svgControls = useAnimation();
   
   const category = detectProductCategory(productData.category, productData.name);
+  const fitType = productData.fit_type || 'regular';
   const coords = ZOOM_CONFIG[category];
 
   // AI Size Prediction
   const aiPrediction = useMemo(() => {
     if (!userProfile?.measurements || !productData?.size_data) return null;
-    return predictBestSize(userProfile, productData.size_data, productData.category);
-  }, [userProfile, productData]);
+    return predictBestSize(userProfile, productData.size_data, category, fitType);
+  }, [userProfile, productData, category, fitType]);
 
   const hasRecommendation = aiPrediction && aiPrediction.size !== productData.size;
 
@@ -82,6 +83,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
     listItems = [
       { id: 'waist', name: 'Waist', data: results.waist },
       { id: 'hip', name: 'Hips', data: results.hip },
+      { id: 'length', name: 'Length', data: results.length },
       { id: 'inseam', name: 'Inseam', data: results.inseam },
       { id: 'outseam', name: 'Outseam', data: results.outseam },
     ];
@@ -124,26 +126,33 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
               <span className={`w-2 h-2 rounded-full animate-pulse ${score > 80 ? 'bg-emerald-500' : 'bg-yellow-500'}`}></span>
               <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">Live Fit Analysis</span>
             </div>
-            <h2 className="text-lg md:text-xl font-medium tracking-tight text-zinc-800 truncate max-w-[150px] sm:max-w-none">
-              {productData.name} <span className="font-light text-zinc-500 ml-1">({productData.size})</span>
-            </h2>
-            {aiPrediction && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-sm">✨</span>
-                <span className="text-[10px] sm:text-xs font-medium text-indigo-600">
-                  AI Recommends: <strong>{aiPrediction.size}</strong>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-medium tracking-tight text-zinc-800 truncate max-w-[200px] sm:max-w-none">
+                {productData.name} <span className="font-light text-zinc-500 ml-1">({productData.size})</span>
+              </h2>
+            </div>
+            {aiPrediction && aiPrediction.score > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5 bg-indigo-50/60 w-fit px-2.5 py-1.5 rounded-lg border border-indigo-100/50">
+                <span className="text-xs md:text-sm leading-none">✨</span>
+                <span className="text-[10px] md:text-xs font-semibold text-indigo-700 tracking-tight leading-none">
+                  AI Recommends: {aiPrediction.size}
                 </span>
-                <span className="hidden xs:inline text-[9px] text-zinc-400">({aiPrediction.score}% match)</span>
+                <span className="text-[9px] md:text-[10px] text-indigo-600 font-bold bg-white/60 px-1.5 py-0.5 rounded shadow-sm leading-none ml-0.5">
+                  {aiPrediction.score}% Match
+                </span>
               </div>
             )}
           </div>
           
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button variant="outline" onClick={onUpdateProfile} className="flex rounded-full text-[10px] md:text-xs uppercase tracking-wider h-8 md:h-9 px-3 md:px-4 border-zinc-200 text-zinc-600 hover:text-zinc-900">
-              Update Passport
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 h-8 w-8 md:h-10 md:w-10">
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <button 
+              onClick={onUpdateProfile} 
+              className="flex items-center justify-center rounded-full border border-zinc-200 hover:bg-zinc-100 transition-colors h-8 px-3 text-[11px] font-medium md:h-9 md:px-4 md:text-xs md:font-semibold text-zinc-800"
+            >
+              EDIT
+            </button>
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 h-10 w-10 sm:h-11 sm:w-11 active:scale-95 transition-transform bg-zinc-50 border border-transparent hover:border-zinc-200">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             </Button>
           </div>
         </div>
@@ -210,12 +219,12 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, productData }) => 
                 </div>
                 {hasRecommendation ? (
                   <p className="text-[11px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
-                    Based on your <strong className="text-white">{aiPrediction.preference}</strong> fit preference, we recommend size <strong className="text-indigo-400 text-sm md:text-base">{aiPrediction.size}</strong> instead of {productData.size}.
+                    Based on your <strong className="text-white">{aiPrediction.preference}</strong> fit preference, we recommend size <strong className="text-indigo-400 text-sm md:text-base">{aiPrediction.size}</strong> instead of {productData.size} {aiPrediction.score > 0 && <span className="text-white bg-white/10 px-1.5 py-0.5 rounded ml-1">with {aiPrediction.score}% Accuracy</span>}.
                   </p>
                 ) : (
                   <p className="text-[11px] md:text-sm font-light text-zinc-300 leading-tight md:leading-relaxed pr-2">
-                    {aiPrediction ? (
-                      <>Size <strong className="text-emerald-400">{productData.size}</strong> is your match! ({aiPrediction.score}% fit score)</>
+                    {aiPrediction && aiPrediction.score > 0 ? (
+                      <>Size <strong className="text-emerald-400">{productData.size}</strong> is your match! (<strong className="text-white">{aiPrediction.score}% Accuracy</strong>)</>
                     ) : (
                       <>Analysis based on your measurements and preference.</>
                     )}

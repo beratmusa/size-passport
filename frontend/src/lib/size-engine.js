@@ -56,6 +56,7 @@ export const normalizeMeasurements = (rawData, category = 'top') => {
   // EKSİK VERİ TAMAMLAMA (Fallback)
   if (category === 'top' || category === 'tshirt') {
       if (clean.chest && !clean.shoulder) clean.shoulder = Math.round(clean.chest * 0.45);
+      if (clean.chest && !clean.waist) clean.waist = Math.round(clean.chest * 0.90);
       if (!clean.arm) clean.arm = 20; 
       if (!clean.length) clean.length = 70;
   } else {
@@ -70,15 +71,24 @@ export const normalizeMeasurements = (rawData, category = 'top') => {
   return clean;
 };
 
-export const getStatusColor = (diff) => {
-  if (Math.abs(diff) <= 2) return { status: 'Perfect', color: '#10b981', bg: 'bg-emerald-500' };
-  if (diff > 2 && diff <= 5) return { status: 'Slightly Loose', color: '#6366f1', bg: 'bg-indigo-500' };
-  if (diff > 5) return { status: 'Too Loose', color: '#3b82f6', bg: 'bg-blue-500' };
-  if (diff < -2 && diff >= -5) return { status: 'Slightly Tight', color: '#f59e0b', bg: 'bg-amber-500' };
+export const getStatusColor = (diff, preference = 'regular') => {
+  let idealDiff = 2; // Regular için ideal bolluk
+  if (preference === 'loose') idealDiff = 4;
+  if (preference === 'slim') idealDiff = 0;
+
+  const normalizedDiff = diff - idealDiff;
+
+  // normalizedDiff 0'a ne kadar yakınsa o kadar "Perfect"
+  if (Math.abs(normalizedDiff) <= 2) return { status: 'Perfect Fit', color: '#10b981', bg: 'bg-emerald-500' };
+  
+  if (normalizedDiff > 2 && normalizedDiff <= 6) return { status: 'Slightly Loose', color: '#6366f1', bg: 'bg-indigo-500' };
+  if (normalizedDiff > 6) return { status: 'Too Loose', color: '#3b82f6', bg: 'bg-blue-500' };
+  
+  if (normalizedDiff < -2 && normalizedDiff >= -5) return { status: 'Slightly Tight', color: '#f59e0b', bg: 'bg-amber-500' };
   return { status: 'Too Tight', color: '#ef4444', bg: 'bg-red-500' };
 };
 
-export const calculateFitScore = (userMeas, productMeas, category) => {
+export const calculateFitScore = (userMeas, productMeas, category, preference = 'regular') => {
   if (!userMeas || !productMeas) return null;
 
   let totalDiff = 0;
@@ -112,11 +122,22 @@ export const calculateFitScore = (userMeas, productMeas, category) => {
 
     if (uVal && pVal) {
       const diff = pVal - uVal;
-      const { status, color, bg } = getStatusColor(diff);
+      const { status, color, bg } = getStatusColor(diff, preference);
       
       let penalty = 0;
-      if (diff < -2) penalty = Math.abs(diff) * 5;
-      else if (diff > 8) penalty = (diff - 8) * 2;
+      if (preference === 'loose') {
+        if (diff < -1) penalty = Math.abs(diff) * 6;
+        else if (diff > 10) penalty = ((diff - 10) * 1.5) + 3;
+        else penalty = Math.abs(diff - 4) * 0.5;
+      } else if (preference === 'slim') {
+        if (diff < -4) penalty = Math.abs(diff) * 5;
+        else if (diff > 3) penalty = ((diff - 3) * 3) + 1.5;
+        else penalty = Math.abs(diff) * 0.5;
+      } else {
+        if (diff < -2) penalty = Math.abs(diff) * 5;
+        else if (diff > 8) penalty = ((diff - 8) * 2) + 3;
+        else penalty = Math.abs(diff - 2) * 0.5;
+      }
       
       totalDiff += penalty;
       count++;
@@ -141,21 +162,59 @@ export const calculateFitScore = (userMeas, productMeas, category) => {
 };
 
 // KULLANICI ÖLÇÜLERİNİ TAHMİN ETME (SmartProfiler'dan taşındı)
-export const estimateUserMeasurements = (baseMeasurements, physicalFeel, category) => {
+export const estimateUserMeasurements = (baseMeasurements, physicalFeel, category, fitType = 'regular') => {
   const base = baseMeasurements;
-  const adjustment = (50 - physicalFeel) / 4; 
+  
+  // physicalFeel: 0 (Çok Dar), 25 (Biraz Dar), 50 (Tam Kararında), 75 (Biraz Bol), 100 (Çok Bol)
+  // Tekstil kalıp (grading) kurallarına göre beden farkı hesaplaması:
+  const sizeDiff = (50 - physicalFeel) / 25; 
+  
   let bodyMeasurements = {};
+  
+  // Fit Type'a göre grading aralıklarını (bedenler arası cm farkını) ayarla
+  const isOversize = fitType.toLowerCase().includes('oversize') || fitType.toLowerCase().includes('loose');
+  const isSlim = fitType.toLowerCase().includes('slim') || fitType.toLowerCase().includes('skinny');
 
   if (category === 'top') {
+    // Üst giyim bölgesel büyüme/küçülme oranları (cm / 1 beden için)
+    // Oversize kalıplarda bedenler arası büyüme daha fazladır (örn: 5cm), Slim'de daha azdır (örn: 3.5cm)
+    const grade = {
+      chest: isOversize ? 5.0 : (isSlim ? 3.5 : 4.0),
+      waist: isOversize ? 5.0 : (isSlim ? 3.5 : 4.0),
+      shoulder: isOversize ? 1.5 : (isSlim ? 1.0 : 1.2),
+      arm: 0.8,
+      length: isOversize ? 2.0 : 1.5
+    };
+
     const chestBase = base.chest || base.chest_width || 100;
-    bodyMeasurements.chest = Math.round(chestBase + adjustment);
-    bodyMeasurements.waist = Math.round((base.waist || base.waist_width || (chestBase * 0.90)) + adjustment); 
-    bodyMeasurements.shoulder = Math.round(base.shoulder || base.shoulder_width || (chestBase * 0.45));
-    bodyMeasurements.arm = base.arm || base.sleeve || base.sleeve_length || 64; 
+    bodyMeasurements.chest = Math.round(chestBase + (grade.chest * sizeDiff));
+    
+    const waistBase = base.waist || base.waist_width || (chestBase * 0.90);
+    bodyMeasurements.waist = Math.round(waistBase + (grade.waist * sizeDiff)); 
+    
+    const shoulderBase = base.shoulder || base.shoulder_width || (chestBase * 0.45);
+    bodyMeasurements.shoulder = Math.round(shoulderBase + (grade.shoulder * sizeDiff));
+    
+    const armBase = base.arm || base.sleeve || base.sleeve_length || 64;
+    bodyMeasurements.arm = Math.round(armBase + (grade.arm * sizeDiff)); 
+
+    const lengthBase = base.length || base.total_length || 70;
+    bodyMeasurements.length = Math.round(lengthBase + (grade.length * sizeDiff));
+    
   } else {
+    // Alt giyim bölgesel büyüme/küçülme oranları
+    const grade = {
+      waist: isOversize ? 4.5 : (isSlim ? 3.5 : 4.0),
+      hip: isOversize ? 5.0 : (isSlim ? 3.5 : 4.0),
+      outseam: 1.0,
+      inseam: 0.5
+    };
+
     const waistBase = base.waist || base.waist_width || 84;
-    bodyMeasurements.waist = Math.round(waistBase + adjustment);
-    bodyMeasurements.hip = Math.round((base.hip || base.hip_width || (waistBase * 1.18)) + adjustment);
+    bodyMeasurements.waist = Math.round(waistBase + (grade.waist * sizeDiff));
+    
+    const hipBase = base.hip || base.hip_width || (waistBase * 1.18);
+    bodyMeasurements.hip = Math.round(hipBase + (grade.hip * sizeDiff));
     
     const lengthVal = base.length || base.total_length || base.outseam;
     const frontRise = base.front_rise || 25;
@@ -177,16 +236,18 @@ export const estimateUserMeasurements = (baseMeasurements, physicalFeel, categor
       outseamVal = inseamVal + frontRise;
     }
 
-    bodyMeasurements.inseam = Math.round(inseamVal);
-    bodyMeasurements.outseam = Math.round(outseamVal);
+    bodyMeasurements.inseam = Math.round(inseamVal + (grade.inseam * sizeDiff));
+    bodyMeasurements.outseam = Math.round(outseamVal + (grade.outseam * sizeDiff));
   }
 
   return bodyMeasurements;
 };
 
-// AI BEDEN TAHMİNİ (Kullanıcı tercihine göre modifiye edilmiş skor)
-export const calculateAIFitScore = (userMeas, productMeas, category, preference) => {
-  if (!userMeas || !productMeas) return null;
+export const calculateAIFitScore = (userMeasRaw, productMeasRaw, category, preference) => {
+  if (!userMeasRaw || !productMeasRaw) return null;
+
+  const userMeas = normalizeMeasurements(userMeasRaw, category);
+  const productMeas = normalizeMeasurements(productMeasRaw, category);
 
   let totalDiff = 0;
   let count = 0;
@@ -219,17 +280,20 @@ export const calculateAIFitScore = (userMeas, productMeas, category, preference)
       let penalty = 0;
       
       if (preference === 'loose') {
-        // Kullanıcı daha bol seviyor.
+        // Kullanıcı daha bol seviyor. (İdeal bolluk: +4cm)
         if (diff < -1) penalty = Math.abs(diff) * 6; // Dar ise büyük ceza
-        else if (diff > 10) penalty = (diff - 10) * 1.5; // Bol ise daha az ceza
+        else if (diff > 10) penalty = ((diff - 10) * 1.5) + 3; // 10'dan sonra ceza artar (+3 taban ceza)
+        else penalty = Math.abs(diff - 4) * 0.5; // İdealden uzaklaştıkça hafif ceza
       } else if (preference === 'slim') {
-        // Kullanıcı daha dar seviyor.
+        // Kullanıcı daha dar seviyor. (İdeal bolluk: +0cm)
         if (diff < -4) penalty = Math.abs(diff) * 5; // Çok dar ise ceza
-        else if (diff > 3) penalty = (diff - 3) * 3; // Biraz bile bol olsa ceza
+        else if (diff > 3) penalty = ((diff - 3) * 3) + 1.5; // Bollaştıkça ceza artar (+1.5 taban ceza)
+        else penalty = Math.abs(diff) * 0.5; // İdealden uzaklaştıkça hafif ceza
       } else {
-        // Regular (Varsayılan)
+        // Regular (Varsayılan). (İdeal bolluk: +2cm)
         if (diff < -2) penalty = Math.abs(diff) * 5;
-        else if (diff > 8) penalty = (diff - 8) * 2;
+        else if (diff > 8) penalty = ((diff - 8) * 2) + 3; // 8'den sonra ceza artar (+3 taban ceza)
+        else penalty = Math.abs(diff - 2) * 0.5; // İdealden uzaklaştıkça hafif ceza
       }
       
       totalDiff += penalty;
@@ -251,9 +315,17 @@ export const predictBestSize = (userProfile, availableSizes, category) => {
 
   availableSizes.forEach(sizeData => {
     const score = calculateAIFitScore(userProfile.measurements, sizeData.measurements, category, preference);
-    if (score !== null && score > bestScore) {
-      bestScore = score;
-      bestSize = sizeData.size;
+    if (score !== null) {
+      if (score > bestScore) {
+        bestScore = score;
+        bestSize = sizeData.size;
+      } else if (score === bestScore) {
+        // Skorda eşitlik durumunda kullanıcının stiline göre yön verelim
+        if (preference === 'loose') {
+          // Bol seven birine eşit skorda daha büyük olan bedeni önerelim
+          bestSize = sizeData.size;
+        }
+      }
     }
   });
 

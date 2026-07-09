@@ -192,12 +192,16 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
 
     const base = refMeas.measurements || refMeas;
     
-    // İş mantığı soyutlaması: Kullanıcı ölçülerini tahmin et
-    const bodyMeasurements = estimateUserMeasurements(base, physicalFeel, category);
+    // İş mantığı soyutlaması: Kullanıcı ölçülerini tahmin et (Artık Fit Type'ı da gönderiyoruz)
+    const bodyMeasurements = estimateUserMeasurements(base, physicalFeel, category, selectedFit);
 
     let userFitPreference = 'regular';
-    if (satisfaction === 100) userFitPreference = 'loose'; 
-    if (satisfaction === 0) userFitPreference = 'slim';
+    // Eğer kullanıcı bol hissetmesine rağmen "Mükemmel" diyorsa veya "Daha büyük" istiyorsa 'loose' tercih eder.
+    if (satisfaction === 100 || (satisfaction === 50 && physicalFeel >= 75)) {
+      userFitPreference = 'loose';
+    } else if (satisfaction === 0 || (satisfaction === 50 && physicalFeel <= 25)) {
+      userFitPreference = 'slim';
+    }
 
     const profileData = {
       gender: selectedGender,
@@ -235,18 +239,18 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
 
   // UI Helper Fonksiyonları...
   const getFeelLabel = (val) => {
-    if (val === 0) return "Too Tight";
-    if (val === 25) return "A Bit Tight";
+    if (val === 0) return "Too Small";
+    if (val === 25) return "A Bit Small";
     if (val === 50) return "Perfect";
-    if (val === 75) return "A Bit Loose";
-    if (val === 100) return "Too Loose";
+    if (val === 75) return "A Bit Big";
+    if (val === 100) return "Too Big";
     return "";
   };
   
   const getSatisfactionLabel = (val) => {
-    if (val === 0) return "Should Be Looser";
-    if (val === 50) return "Just As I Wanted";
-    if (val === 100) return "Should Be Tighter";
+    if (val === 0) return "Want Smaller";
+    if (val === 50) return "Perfect";
+    if (val === 100) return "Want Bigger";
     return "";
   };
 

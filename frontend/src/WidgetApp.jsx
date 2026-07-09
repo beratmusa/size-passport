@@ -3,17 +3,38 @@ import { supabase } from './supabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { predictBestSize } from './lib/size-engine';
 import useProductData from './hooks/useProductData';
+import { detectProductCategory } from './lib/utils';
 
 // Components
 import SmartProfiler from './components/SmartProfiler';
 import FitAnalyzer from './components/FitAnalyzer';
 
-export default function WidgetApp({ productId, productTitle, shopDomain, config = {} }) {
+export default function WidgetApp({ productId, productTitle, shopDomain, shopifyVariants = [], config = {} }) {
   const [session, setSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [currentShopifySize, setCurrentShopifySize] = useState(null);
   
   // Product Data
-  const { product, sizes, loading, error } = useProductData(productId, { lookupBy: 'shopify' });
+  const { product, sizes: allSizes, loading, error } = useProductData(productId, { lookupBy: 'shopify' });
+
+  // Filter sizes based on Shopify availability
+  const sizes = useMemo(() => {
+    if (shopifyVariants.length === 0) return allSizes;
+    
+    // Get all size labels that are available in Shopify
+    const availableSizeLabels = shopifyVariants
+      .filter(v => v.available)
+      .map(v => v.options.map(o => o.toLowerCase())); // Flatten all options just in case
+    
+    const flattenedAvailable = availableSizeLabels.flat();
+
+    return allSizes.filter(s => {
+      const label = s.size.toLowerCase();
+      // Check if this size label exists in any available variant's options or title
+      return flattenedAvailable.includes(label) || 
+             shopifyVariants.some(v => v.available && v.title.toLowerCase().includes(label));
+    });
+  }, [allSizes, shopifyVariants]);
 
   // Widget State
   const [activeModal, setActiveModal] = useState('none'); // 'none' | 'login' | 'wizard' | 'analyzer'
@@ -61,18 +82,185 @@ export default function WidgetApp({ productId, productTitle, shopDomain, config 
     await supabase.auth.signInWithOAuth({ provider: 'google' });
   };
 
+  // Listen to Shopify Variant Changes
+  useEffect(() => {
+    if (sizes.length === 0) return;
+    
+    // Auto-detect initial size if possible
+    const checkedRadio = document.querySelector('input[type="radio"]:checked');
+    if (checkedRadio) {
+      const val = checkedRadio.value.toLowerCase().trim();
+      const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+      if (matched) setCurrentShopifySize(matched.size);
+    }
+
+    const handleChange = (e) => {
+        if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'radio') {
+            const val = e.target.value.toLowerCase().trim();
+            const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+            if (matched) setCurrentShopifySize(matched.size);
+        } else if (e.target.tagName.toLowerCase() === 'select') {
+            const val = e.target.value.toLowerCase().trim();
+            const matched = sizes.find(s => s.size.toLowerCase() === val || (e.target.options[e.target.selectedIndex] && e.target.options[e.target.selectedIndex].text.toLowerCase().includes(s.size.toLowerCase())));
+            if (matched) setCurrentShopifySize(matched.size);
+        }
+    };
+
+    const handleClick = (e) => {
+        const label = e.target.closest('label');
+        if (label) {
+            const input = document.getElementById(label.htmlFor);
+            if (input && input.value) {
+                const val = input.value.toLowerCase().trim();
+                const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+                if (matched) setCurrentShopifySize(matched.size);
+            } else {
+                 const val = label.innerText.toLowerCase().trim();
+                 const matched = sizes.find(s => s.size.toLowerCase() === val);
+                 if (matched) setCurrentShopifySize(matched.size);
+            }
+        }
+    };
+    
+    document.addEventListener('change', handleChange);
+    document.addEventListener('click', handleClick);
+
+    return () => {
+        document.removeEventListener('change', handleChange);
+        document.removeEventListener('click', handleClick);
+    };
+  }, [sizes]);
+
   // Prepare product data for analyzer
   const selectedProductData = useMemo(() => {
     if (!product || sizes.length === 0) return null;
-    const defaultSize = sizes[0]?.size;
-    const sizeEntry = sizes.find(s => s.size === defaultSize);
+    const defaultSize = currentShopifySize || sizes[0]?.size;
+    const sizeEntry = sizes.find(s => s.size === defaultSize) || sizes[0];
     return {
       ...product,
-      size: defaultSize,
+      size: sizeEntry.size,
       measurements: sizeEntry?.measurements || {},
       size_data: sizes
     };
-  }, [product, sizes]);
+  }, [product, sizes, currentShopifySize]);
+
+  const bestSizeResult = useMemo(() => {
+    if (!userProfile || !selectedProductData) return null;
+    const normalizedCategory = detectProductCategory(selectedProductData.category, selectedProductData.name);
+    const fitType = selectedProductData.fit_type || 'regular';
+    return predictBestSize(userProfile, selectedProductData.size_data, normalizedCategory, fitType);
+  }, [userProfile, selectedProductData]);
+
+  // Track Add to Cart Events
+  useEffect(() => {
+    if (!userProfile || !selectedProductData || !bestSizeResult?.size) return;
+
+    const trackAddToCart = async () => {
+      try {
+        await supabase.from('analytics_events').insert({
+          user_id: session?.user?.id || null,
+          product_id: productId,
+          event_type: 'add_to_cart_with_ai',
+          recommended_size: bestSizeResult.size,
+          shop: shopDomain
+        });
+      } catch (e) {
+        console.error('Tracking error:', e);
+      }
+    };
+
+    const handleCartSubmit = (e) => {
+      const form = e.target;
+      if (form && form.action && form.action.includes('/cart/add')) {
+        trackAddToCart();
+      }
+    };
+
+    const origFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const url = args[0];
+      if (typeof url === 'string' && url.includes('/cart/add')) {
+        trackAddToCart();
+      }
+      return origFetch(...args);
+    };
+
+    document.addEventListener('submit', handleCartSubmit);
+    return () => {
+      document.removeEventListener('submit', handleCartSubmit);
+      window.fetch = origFetch;
+    };
+  }, [userProfile, selectedProductData, bestSizeResult, session, productId, shopDomain]);
+
+  // Highlight AI Recommended Size in Shopify Theme
+  useEffect(() => {
+    if (!bestSizeResult?.size || !config.showRecommendation) return;
+
+    const size = bestSizeResult.size.toLowerCase();
+    let highlightedElements = [];
+
+    const highlightSize = () => {
+      // 1. Radio Buttons (Dawn theme and most others)
+      const inputs = document.querySelectorAll('input[type="radio"]');
+      inputs.forEach(input => {
+        if (input.value.toLowerCase() === size || input.value.toLowerCase() === size + ' ') {
+          const label = document.querySelector(`label[for="${input.id}"]`) || input.closest('label');
+          if (label && !label.dataset.aiHighlighted) {
+            label.dataset.aiHighlighted = 'true';
+            label.style.border = `2px solid ${config.recommendationBgColor || '#6366f1'}`;
+            label.style.position = 'relative';
+            
+            if (!label.querySelector('.size-passport-badge')) {
+              const badge = document.createElement('span');
+              badge.className = 'size-passport-badge';
+              badge.innerText = '✨';
+              badge.style.position = 'absolute';
+              badge.style.top = '-8px';
+              badge.style.right = '-8px';
+              badge.style.background = config.recommendationBgColor || '#6366f1';
+              badge.style.color = config.recommendationTextColor || '#ffffff';
+              badge.style.fontSize = '10px';
+              badge.style.padding = '2px 4px';
+              badge.style.borderRadius = '999px';
+              badge.style.lineHeight = '1';
+              badge.style.zIndex = '10';
+              label.appendChild(badge);
+            }
+            highlightedElements.push(label);
+          }
+        }
+      });
+
+      // 2. Select Dropdowns
+      const options = document.querySelectorAll('select option');
+      options.forEach(option => {
+        if (option.value.toLowerCase() === size || option.text.toLowerCase().trim() === size) {
+          if (!option.text.includes('✨')) {
+             option.dataset.origText = option.text;
+             option.text = `${option.text} ✨ AI Recommended`;
+             highlightedElements.push(option);
+          }
+        }
+      });
+    };
+
+    highlightSize();
+    const timer = setTimeout(highlightSize, 1000); // Check again after 1s for dynamically loaded variants
+
+    return () => {
+      clearTimeout(timer);
+      highlightedElements.forEach(el => {
+        if (el.tagName.toLowerCase() === 'label') {
+          el.style.border = '';
+          el.dataset.aiHighlighted = '';
+          const badge = el.querySelector('.size-passport-badge');
+          if (badge) badge.remove();
+        } else if (el.tagName.toLowerCase() === 'option') {
+          if (el.dataset.origText) el.text = el.dataset.origText;
+        }
+      });
+    };
+  }, [bestSizeResult, config.showRecommendation]);
 
   if (loading) {
     return (
@@ -83,21 +271,30 @@ export default function WidgetApp({ productId, productTitle, shopDomain, config 
   }
 
   const isButton = config.ctaType === 'button';
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const currentScale = isMobile ? (config.ctaScaleMobile || 1.0) : (config.ctaScale || 1.0);
+  const currentAlign = isMobile ? (config.ctaAlignMobile || 'stretch') : (config.ctaAlign || 'flex-start');
   
   const ctaStyle = isButton ? {
     backgroundColor: config.ctaBgColor || '#000000',
-    color: config.ctaTextColor || '#ffffff', // For button we usually want contrast, but letting them choose. Wait, default text color in shopify config was #000000. Let's stick to config.ctaTextColor.
+    color: config.ctaTextColor || '#ffffff', 
     padding: `${config.ctaPaddingY || 8}px ${config.ctaPaddingX || 12}px`,
     borderRadius: `${config.ctaBorderRadius || 8}px`,
-    border: 'none',
+    border: config.ctaBorderThickness && config.ctaBorderColor && config.ctaBorderThickness > 0 ? `${config.ctaBorderThickness}px solid ${config.ctaBorderColor}` : 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
     cursor: 'pointer',
-    width: config.ctaAlign === 'stretch' ? '100%' : 'auto',
+    width: currentAlign === 'stretch' ? '100%' : 'auto',
     fontWeight: 500,
-    transition: 'opacity 0.2s',
+    transition: 'all 0.2s',
+    transform: `scale(${currentScale})`,
+    transformOrigin: currentAlign === 'center' ? 'center' : (currentAlign === 'flex-end' ? 'right' : 'left'),
+    '--hover-bg': config.ctaHoverBgColor || config.ctaBgColor || '#000000',
+    '--hover-text': config.ctaHoverTextColor || config.ctaTextColor || '#ffffff',
+    '--hover-border': config.ctaHoverBorderColor || config.ctaBorderColor || 'transparent',
+    '--hover-scale-val': currentScale * (config.ctaHoverScale || 1.0)
   } : {
     color: config.ctaTextColor || '#000000',
     padding: `${config.ctaPaddingY || 8}px ${config.ctaPaddingX || 12}px`,
@@ -107,23 +304,38 @@ export default function WidgetApp({ productId, productTitle, shopDomain, config 
     cursor: 'pointer',
     background: 'transparent',
     border: 'none',
-    borderBottom: '1px solid currentColor',
-    width: config.ctaAlign === 'stretch' ? '100%' : 'auto',
+    borderBottom: config.ctaBorderThickness && config.ctaBorderColor && config.ctaBorderThickness > 0 ? `${config.ctaBorderThickness}px solid ${config.ctaBorderColor}` : '1px solid currentColor',
+    width: currentAlign === 'stretch' ? '100%' : 'auto',
     fontWeight: 500,
+    transition: 'all 0.2s',
+    transform: `scale(${currentScale})`,
+    transformOrigin: currentAlign === 'center' ? 'center' : (currentAlign === 'flex-end' ? 'right' : 'left'),
+    '--hover-bg': 'transparent',
+    '--hover-text': config.ctaHoverTextColor || config.ctaTextColor || '#000000',
+    '--hover-border': config.ctaHoverBorderColor || config.ctaBorderColor || 'currentColor',
+    '--hover-scale-val': currentScale * (config.ctaHoverScale || 1.0)
   };
 
   // Buton içinde "link" ise icon renklerini vs buna göre ayarlayalım
-  const iconBgColor = isButton ? 'transparent' : '#000000'; // if it's a solid button, maybe no background for icon
+  const iconBgColor = isButton ? 'transparent' : '#000000'; 
   const iconColor = isButton ? 'currentColor' : '#ffffff';
 
   return (
-    <div className="size-passport-widget font-sans w-full" style={{ display: 'flex', justifyContent: config.ctaAlign === 'stretch' ? 'center' : (config.ctaAlign || 'flex-start') }}>
+    <div className="size-passport-widget font-sans w-full" style={{ display: 'flex', flexDirection: 'column', width: currentAlign === 'stretch' ? '100%' : 'auto' }}>
       <Toaster position="top-center" containerStyle={{ zIndex: 10000002 }} />
-      
+      <style>{`
+        .size-passport-cta-button:hover {
+          background-color: var(--hover-bg) !important;
+          color: var(--hover-text) !important;
+          border-color: var(--hover-border) !important;
+          transform: scale(var(--hover-scale-val)) !important;
+          opacity: 1 !important;
+        }
+      `}</style>
       <button 
         onClick={handleSmartCheck}
         style={ctaStyle}
-        className="group hover:opacity-80 transition-all duration-300 text-sm md:text-base"
+        className="group size-passport-cta-button transition-all duration-300 text-sm md:text-base"
       >
         <span 
           className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full transition-colors"
@@ -141,12 +353,28 @@ export default function WidgetApp({ productId, productTitle, shopDomain, config 
         </svg>
       </button>
 
+      {/* RECOMMENDED SIZE TEXT */}
+      {userProfile && bestSizeResult && config.showRecommendation && (
+        <div 
+          className="mt-2 text-xs md:text-sm font-medium tracking-tight flex items-center gap-1.5"
+          style={{ 
+            color: config.recommendationBgColor || '#4f46e5',
+            alignSelf: currentAlign === 'center' ? 'center' : (currentAlign === 'flex-end' ? 'flex-end' : 'flex-start') 
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          {config.recommendationText?.replace('{size}', bestSizeResult.size) || `AI Recommends: ${bestSizeResult.size}`}
+        </div>
+      )}
+
       {/* MODALS */}
       
       {/* 0. LOGIN MODAL */}
       {activeModal === 'login' && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative">
+          <div className="bg-white w-full max-sm rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative">
             <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>

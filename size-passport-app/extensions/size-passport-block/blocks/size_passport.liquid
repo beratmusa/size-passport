@@ -4,31 +4,58 @@
      data-shop-domain="{{ shop.domain }}"
      data-product-type="{{ product.type | escape }}"
      data-product-vendor="{{ product.vendor | escape }}"
+     data-variants='[{% for variant in product.variants %}{"id":{{ variant.id }},"title":"{{ variant.title | escape }}","available":{{ variant.available }},"options":{{ variant.options | json }}}{% unless forloop.last %},{% endunless %}{% endfor %}]'
      data-cta-type="{{ block.settings.cta_type }}"
      data-cta-align="{{ block.settings.cta_align }}"
+     data-cta-align-mobile="{{ block.settings.cta_align_mobile }}"
      data-cta-padding-x="{{ block.settings.cta_padding_x }}"
      data-cta-padding-y="{{ block.settings.cta_padding_y }}"
+     data-cta-margin-top="{{ block.settings.cta_margin_top }}"
+     data-cta-margin-bottom="{{ block.settings.cta_margin_bottom }}"
+     data-cta-scale="{{ block.settings.cta_scale }}"
+     data-cta-scale-mobile="{{ block.settings.cta_scale_mobile }}"
      data-cta-border-radius="{{ block.settings.cta_border_radius }}"
      data-cta-bg-color="{{ block.settings.cta_bg_color }}"
      data-cta-text-color="{{ block.settings.cta_text_color }}"
-     style="margin: 12px 0;">
+     data-show-recommendation="{{ block.settings.show_recommendation }}"
+     data-recommendation-text="{{ block.settings.recommendation_text | escape }}"
+     data-cta-border-thickness="{{ block.settings.cta_border_thickness }}"
+     data-cta-border-color="{{ block.settings.cta_border_color }}"
+     data-cta-hover-bg-color="{{ block.settings.cta_hover_bg_color }}"
+     data-cta-hover-text-color="{{ block.settings.cta_hover_text_color }}"
+     data-cta-hover-border-color="{{ block.settings.cta_hover_border_color }}"
+     data-cta-hover-scale="{{ block.settings.cta_hover_scale }}"
+     data-recommendation-bg-color="{{ block.settings.recommendation_bg_color }}"
+     data-recommendation-text-color="{{ block.settings.recommendation_text_color }}"
+     style="margin: 0;">
 </div>
 
 <style>
-  /* Shopify tema stillerinin widget'ı etkilemesini önlüyoruz */
   #size-passport-root {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     display: flex;
-    justify-content: {{ block.settings.cta_align }};
+    flex-direction: column;
+    margin-top: {{ block.settings.cta_margin_top }}px;
+    margin-bottom: {{ block.settings.cta_margin_bottom }}px;
+    
+    /* Desktop Alignment */
+    align-items: {% if block.settings.cta_align == 'stretch' %}stretch{% elsif block.settings.cta_align == 'center' %}center{% elsif block.settings.cta_align == 'flex-end' %}flex-end{% else %}flex-start{% endif %};
   }
+
+  /* Mobile Alignment Override */
+  @media screen and (max-width: 767px) {
+    #size-passport-root {
+      align-items: {% if block.settings.cta_align_mobile == 'stretch' %}stretch{% elsif block.settings.cta_align_mobile == 'center' %}center{% elsif block.settings.cta_align_mobile == 'flex-end' %}flex-end{% else %}flex-start{% endif %};
+    }
+  }
+
   #size-passport-root *,
   #size-passport-root *::before,
   #size-passport-root *::after {
     box-sizing: border-box;
   }
-  /* Modal'ın Shopify header'ının altına düşmemesi için z-index override */
   #size-passport-root .fixed {
     z-index: 999999 !important;
   }
@@ -42,6 +69,42 @@
   "stylesheet": "size-passport.css",
   "settings": [
     {
+      "type": "header",
+      "content": "General Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_recommendation",
+      "label": "Show Recommended Size",
+      "default": true,
+      "info": "Displays the AI recommended size near the button after a user completes their profile."
+    },
+    {
+      "type": "text",
+      "id": "recommendation_text",
+      "label": "Recommendation Text",
+      "default": "AI Recommends: {size}",
+      "info": "Use {size} to display the recommended size."
+    },
+    {
+      "type": "color",
+      "id": "recommendation_bg_color",
+      "label": "Recommendation Highlight Color",
+      "default": "#6366f1",
+      "info": "Color for the recommended variant box border and badge background."
+    },
+    {
+      "type": "color",
+      "id": "recommendation_text_color",
+      "label": "Recommendation Badge Text Color",
+      "default": "#ffffff",
+      "info": "Text color inside the recommended variant badge."
+    },
+    {
+      "type": "header",
+      "content": "Desktop Appearance"
+    },
+    {
       "type": "select",
       "id": "cta_type",
       "label": "Display Style",
@@ -49,7 +112,7 @@
         { "value": "button", "label": "Solid Button" },
         { "value": "link", "label": "Text Link" }
       ],
-      "default": "link"
+      "default": "button"
     },
     {
       "type": "select",
@@ -64,6 +127,44 @@
       "default": "flex-start"
     },
     {
+      "type": "range",
+      "id": "cta_scale",
+      "label": "Button Scale",
+      "min": 0.5,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 1.0
+    },
+    {
+      "type": "header",
+      "content": "Mobile Appearance"
+    },
+    {
+      "type": "select",
+      "id": "cta_align_mobile",
+      "label": "Mobile Alignment",
+      "options": [
+        { "value": "flex-start", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Right" },
+        { "value": "stretch", "label": "Full Width" }
+      ],
+      "default": "stretch"
+    },
+    {
+      "type": "range",
+      "id": "cta_scale_mobile",
+      "label": "Mobile Scale",
+      "min": 0.5,
+      "max": 1.5,
+      "step": 0.1,
+      "default": 1.0
+    },
+    {
+      "type": "header",
+      "content": "Styling Details"
+    },
+    {
       "type": "color",
       "id": "cta_bg_color",
       "label": "Button Background Color",
@@ -73,7 +174,54 @@
       "type": "color",
       "id": "cta_text_color",
       "label": "CTA Text Color",
-      "default": "#000000"
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "cta_border_thickness",
+      "label": "Border Thickness (px)",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "cta_border_color",
+      "label": "Border Color",
+      "default": "transparent"
+    },
+    {
+      "type": "header",
+      "content": "Hover States"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_bg_color",
+      "label": "Hover Background Color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_text_color",
+      "label": "Hover Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_border_color",
+      "label": "Hover Border Color",
+      "default": "transparent"
+    },
+    {
+      "type": "range",
+      "id": "cta_hover_scale",
+      "label": "Hover Scale (Zoom Effect)",
+      "min": 0.9,
+      "max": 1.2,
+      "step": 0.1,
+      "default": 1.0,
+      "info": "Set to > 1.0 for a zoom-in effect, or < 1.0 for a press-down effect on hover."
     },
     {
       "type": "range",
@@ -82,7 +230,7 @@
       "min": 0,
       "max": 60,
       "step": 1,
-      "default": 12
+      "default": 16
     },
     {
       "type": "range",
@@ -91,7 +239,25 @@
       "min": 0,
       "max": 40,
       "step": 1,
-      "default": 8
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "cta_margin_top",
+      "label": "Margin Top (px)",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "cta_margin_bottom",
+      "label": "Margin Bottom (px)",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 12
     },
     {
       "type": "range",

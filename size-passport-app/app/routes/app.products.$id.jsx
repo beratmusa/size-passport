@@ -35,9 +35,26 @@ export const action = async ({ request, params }) => {
   const actionType = formData.get("actionType");
 
   if (actionType === "save_size") {
-    const sizeLabel = formData.get("sizeLabel");
+    const rawLabel = formData.get("sizeLabel");
+    const sizeLabel = rawLabel ? rawLabel.toString().toUpperCase().trim() : "";
     const measurementsJson = formData.get("measurements");
     const measurements = JSON.parse(measurementsJson);
+
+    const sizeOrderMap = {
+      "xxs": 1,
+      "xs": 2,
+      "s": 3,
+      "m": 4,
+      "l": 5,
+      "xl": 6,
+      "xxl": 7,
+      "2xl": 7,
+      "3xl": 8,
+      "4xl": 9,
+      "5xl": 10
+    };
+    const normalizedLabel = sizeLabel.toLowerCase();
+    const sortOrder = sizeOrderMap[normalizedLabel] || 99;
 
     // Manual Upsert: First check if it exists to avoid 42P10 error if unique constraint is missing
     const { data: existingSize } = await supabase
@@ -53,7 +70,7 @@ export const action = async ({ request, params }) => {
         .from("merchant_product_sizes")
         .update({
           measurements: measurements,
-          sort_order: 0
+          sort_order: sortOrder
         })
         .eq("id", existingSize.id);
       error = updateError;
@@ -64,7 +81,7 @@ export const action = async ({ request, params }) => {
           product_id: id,
           size_label: sizeLabel,
           measurements: measurements,
-          sort_order: 0
+          sort_order: sortOrder
         });
       error = insertError;
     }
@@ -144,7 +161,7 @@ export default function ProductDetail() {
     
     const fd = new FormData();
     fd.append("actionType", "save_size");
-    fd.append("sizeLabel", newSize.label);
+    fd.append("sizeLabel", newSize.label.toUpperCase().trim());
     fd.append("measurements", JSON.stringify(measurements));
     
     submit(fd, { method: "post" });
@@ -208,6 +225,7 @@ export default function ProductDetail() {
                     <>
                       <th style={{ padding: '12px' }}>Waist</th>
                       <th style={{ padding: '12px' }}>Hip</th>
+                      <th style={{ padding: '12px' }}>Length</th>
                       <th style={{ padding: '12px' }}>Inseam</th>
                       <th style={{ padding: '12px' }}>Outseam</th>
                     </>
@@ -231,6 +249,7 @@ export default function ProductDetail() {
                       <>
                         <td style={{ padding: '12px' }}>{size.measurements.waist || '-'}</td>
                         <td style={{ padding: '12px' }}>{size.measurements.hip || '-'}</td>
+                        <td style={{ padding: '12px' }}>{size.measurements.length || '-'}</td>
                         <td style={{ padding: '12px' }}>{size.measurements.inseam || '-'}</td>
                         <td style={{ padding: '12px' }}>{size.measurements.outseam || '-'}</td>
                       </>
@@ -264,6 +283,7 @@ export default function ProductDetail() {
             <>
               <s-text-field label="Waist" type="number" value={newSize.waist} onChange={(e) => setNewSize({...newSize, waist: e.currentTarget.value})} />
               <s-text-field label="Hip" type="number" value={newSize.hip} onChange={(e) => setNewSize({...newSize, hip: e.currentTarget.value})} />
+              <s-text-field label="Length (e.g. for Shorts)" type="number" value={newSize.length} onChange={(e) => setNewSize({...newSize, length: e.currentTarget.value})} />
               <s-text-field label="Inseam" type="number" value={newSize.inseam} onChange={(e) => setNewSize({...newSize, inseam: e.currentTarget.value})} />
               <s-text-field label="Outseam" type="number" value={newSize.outseam} onChange={(e) => setNewSize({...newSize, outseam: e.currentTarget.value})} />
             </>

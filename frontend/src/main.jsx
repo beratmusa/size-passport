@@ -15,16 +15,35 @@ function initSizePassport() {
     const productId = container.dataset.productId;
     const productTitle = container.dataset.productTitle;
     const shopDomain = container.dataset.shopDomain;
+    let variants = [];
+    try {
+      variants = JSON.parse(container.dataset.variants || '[]');
+    } catch (e) {
+      console.error("Error parsing variants data:", e);
+    }
 
     // CTA Configuration from Shopify Editor
     const config = {
       ctaType: container.dataset.ctaType || 'link',
       ctaAlign: container.dataset.ctaAlign || 'flex-start',
+      ctaAlignMobile: container.dataset.ctaAlignMobile || 'stretch',
       ctaPaddingX: parseInt(container.dataset.ctaPaddingX) || 12,
       ctaPaddingY: parseInt(container.dataset.ctaPaddingY) || 8,
+      ctaScale: parseFloat(container.dataset.ctaScale) || 1.0,
+      ctaScaleMobile: parseFloat(container.dataset.ctaScaleMobile) || 1.0,
       ctaBorderRadius: parseInt(container.dataset.ctaBorderRadius) || 8,
       ctaBgColor: container.dataset.ctaBgColor || '#000000',
-      ctaTextColor: container.dataset.ctaTextColor || '#000000',
+      ctaTextColor: container.dataset.ctaTextColor || '#ffffff',
+      showRecommendation: container.dataset.showRecommendation !== 'false',
+      recommendationText: container.dataset.recommendationText || 'AI Recommends: {size}',
+      ctaBorderThickness: parseInt(container.dataset.ctaBorderThickness) || 0,
+      ctaBorderColor: container.dataset.ctaBorderColor || 'transparent',
+      ctaHoverBgColor: container.dataset.ctaHoverBgColor || '',
+      ctaHoverTextColor: container.dataset.ctaHoverTextColor || '',
+      ctaHoverBorderColor: container.dataset.ctaHoverBorderColor || 'transparent',
+      ctaHoverScale: parseFloat(container.dataset.ctaHoverScale) || 1.0,
+      recommendationBgColor: container.dataset.recommendationBgColor || '#6366f1',
+      recommendationTextColor: container.dataset.recommendationTextColor || '#ffffff',
     };
 
     try {
@@ -37,6 +56,7 @@ function initSizePassport() {
             productTitle={productTitle} 
             shopDomain={shopDomain} 
             config={config}
+            shopifyVariants={variants}
           />
         </StrictMode>
       );

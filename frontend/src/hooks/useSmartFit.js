@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { normalizeMeasurements, calculateFitScore } from '../lib/size-engine';
 
 export const useSmartFit = (productRawData, userProfile, category) => {
-  
+
   const productMetrics = useMemo(() => {
     return normalizeMeasurements(productRawData, category);
   }, [productRawData, category]);
@@ -13,8 +13,9 @@ export const useSmartFit = (productRawData, userProfile, category) => {
   }, [userProfile, category]);
 
   const result = useMemo(() => {
-    return calculateFitScore(userMetrics, productMetrics, category);
-  }, [userMetrics, productMetrics, category]);
+    const preference = userProfile?.preferences?.default_fit || 'regular';
+    return calculateFitScore(userMetrics, productMetrics, category, preference);
+  }, [userMetrics, productMetrics, category, userProfile]);
 
   return {
     isReady: !!result,
