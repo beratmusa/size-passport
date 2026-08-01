@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
+import { t } from '../lib/i18n';
 
 import { Button } from "@/components/ui/button";
 import BrandSelectionStep from './profiler/BrandSelectionStep';
@@ -14,14 +15,15 @@ const SIZE_CONFIG = {
   inch: ['28', '29', '30', '31', '32', '33', '34', '36', '38']
 };
 
-const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory, productName }) => {
+const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory, productGender, productName, lang = 'en' }) => {
   const [step, setStep] = useState(1);
   const [brands, setBrands] = useState([]);
+  const [availableBrandIds, setAvailableBrandIds] = useState([]);
   const [fitOptions, setFitOptions] = useState([]); 
   const [loadingData, setLoadingData] = useState(true);
 
   // Akıllı Algılama Fonksiyonları
-  const detectedGender = detectProductGender(productCategory, productName);
+  const detectedGender = productGender || detectProductGender(productCategory, productName);
   const category = detectProductCategory(productCategory, productName);
 
   // Seçim State'leri
@@ -54,11 +56,28 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
     fetchData();
   }, []);
 
-  // 2. OTOMATİK AYARLAR (Kategori değişince çalışır)
+  // 2. MARKALARI FİLTRELE (Cinsiyet ve Kategoriye Göre)
+  useEffect(() => {
+    const fetchAvailableBrands = async () => {
+      const { data } = await supabase
+        .from('view_smart_variants')
+        .select('brand_id')
+        .eq('gender', selectedGender)
+        .eq('category', category);
+      
+      if (data) {
+        const uniqueIds = [...new Set(data.map(d => d.brand_id))];
+        setAvailableBrandIds(uniqueIds);
+      }
+    };
+    fetchAvailableBrands();
+  }, [selectedGender, category]);
+
+  // 3. OTOMATİK AYARLAR (Kategori değişince çalışır)
   useEffect(() => {
     // Kategori değişince Beden ve Fit seçimini sıfırla (Hata olmaması için)
+    setSelectedFit('');
     setSelectedSize('');
-    setSelectedFit('regular'); // Her kategoride olan güvenli bir liman
   }, [category, selectedSubCategory, selectedGender]);
 
   // 3. FİLTRELEME MANTIĞI (Kritik Kısım Burası) 🔍
@@ -142,25 +161,24 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
   }, [selectedSubCategory, variantData]);
 
   const filteredFits = fitOptions.filter(fit => {
-    // 1. Kategori bazlı filtre (eski mantık)
     const isCategoryMatch = (fit.category === 'all' || !fit.category || fit.category === category);
     if (!isCategoryMatch) return false;
     
-    // 2. Markaya özel kesim filtresi (veritabanında o markanın kesimleri varsa)
     if (brandFits.length > 0) {
       return brandFits.includes(fit.name.toLowerCase().trim());
     }
     
-    return true; 
+    // Markaya ait o kategoride hiç ürün yoksa boş dönsün (uydurma olmasın)
+    return false;
   });
 
-  // Beden listesi direkt DB'den, DB boşsa kategoriye göre varsayılan
+  // Beden listesi direkt DB'den, DB boşsa uydurma beden gösterme
   const activeSizeList = brandSizes.length > 0 
     ? brandSizes.filter(s => {
         if (!activeSystemTab || availableSystems.length <= 1) return true;
         return s.system === activeSystemTab || (!s.system && activeSystemTab === 'universal');
       })
-    : (selectedSubCategory === 'jeans' || selectedSubCategory === 'pants' || category === 'bottom' ? SIZE_CONFIG.inch : SIZE_CONFIG.letter);
+    : [];
 
   // 4. KAYDETME İŞLEMİ
   const handleSave = async () => {
@@ -185,7 +203,7 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
     let { data: refMeas } = await query.maybeSingle();
 
     if (!refMeas) {
-      toast("Tam veri bulunamadı, tahmini kalıp kullanılıyor.", { icon: 'ℹ️' });
+      toast(t('dataNotFound', lang), { icon: 'ℹ️' });
       if (category === 'top') refMeas = { measurements: { chest: 100, waist: 90 } };
       else refMeas = { measurements: { waist: 84, hip: 100, length: 81 } };
     }
@@ -203,13 +221,30 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
       userFitPreference = 'slim';
     }
 
+    const historyEntry = {
+      id: Date.now().toString(),
+      brand: selectedBrand,
+      size: selectedSize,
+      fit: selectedFit,
+      category,
+      subCategory: selectedSubCategory,
+      measurements: bodyMeasurements,
+      preference: userFitPreference,
+      date: new Date().toISOString()
+    };
+
+    let history = userProfile?.preferences?.history || [];
+    // Remove if there is an exact same brand/category entry to avoid duplicates, or just prepend
+    history = [historyEntry, ...history.filter(h => h.brand !== selectedBrand || h.category !== category)];
+
     const profileData = {
       gender: selectedGender,
       measurements: bodyMeasurements,
       preferences: { 
         default_fit: userFitPreference, 
         reference_brand: selectedBrand, 
-        reference_size: selectedSize 
+        reference_size: selectedSize,
+        history
       },
       updated_at: new Date()
     };
@@ -225,32 +260,32 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
 
     if (!error) {
       if (!session?.user?.id && onGuestProfileCreated) {
-        toast.success("Guest profile created!");
+        toast.success(t('profileCreated', lang));
         onGuestProfileCreated(profileData);
       } else {
-        toast.success("Profile created successfully!");
+        toast.success(t('profileSuccess', lang));
         if (onRefreshProfile) await onRefreshProfile();
       }
       setTimeout(() => { if (onClose) onClose(); }, 600);
     } else {
-      toast.error("An error occurred.");
+      toast.error(t('errorOccurred', lang));
     }
   };
 
   // UI Helper Fonksiyonları...
   const getFeelLabel = (val) => {
-    if (val === 0) return "Too Small";
-    if (val === 25) return "A Bit Small";
-    if (val === 50) return "Perfect";
-    if (val === 75) return "A Bit Big";
-    if (val === 100) return "Too Big";
+    if (val === 0) return t('tooSmall', lang);
+    if (val === 25) return t('bitSmall', lang);
+    if (val === 50) return t('perfect', lang);
+    if (val === 75) return t('bitBig', lang);
+    if (val === 100) return t('tooBig', lang);
     return "";
   };
   
   const getSatisfactionLabel = (val) => {
-    if (val === 0) return "Want Smaller";
-    if (val === 50) return "Perfect";
-    if (val === 100) return "Want Bigger";
+    if (val === 0) return t('wantSmaller', lang);
+    if (val === 50) return t('perfect', lang);
+    if (val === 100) return t('wantBigger', lang);
     return "";
   };
 
@@ -259,8 +294,8 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
       
       <header className="flex-none py-4 px-6 md:py-6 md:px-8 border-b border-zinc-100 flex items-center justify-between">
         <div>
-          <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Smart Fit Assistant</h2>
-          <p className="text-zinc-500 text-[10px] md:text-sm mt-0.5 md:mt-1">{step === 1 ? 'Reference Brand Selection' : 'Detailed Analysis'}</p>
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight">{t('smartFitAssistant', lang)}</h2>
+          <p className="text-zinc-500 text-[10px] md:text-sm mt-0.5 md:mt-1">{step === 1 ? t('refBrandSelection', lang) : t('detailedAnalysis', lang)}</p>
         </div>
         {onClose && ( <Button variant="ghost" onClick={onCancel || onClose} className="rounded-full h-8 w-8 md:h-10 md:w-10 p-0">✕</Button> )}
       </header>
@@ -272,10 +307,11 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
             <BrandSelectionStep 
               selectedGender={selectedGender}
               setSelectedGender={setSelectedGender}
-              brands={brands}
+              brands={brands.filter(b => availableBrandIds.includes(b.id))}
               loadingData={loadingData}
               onSelectBrand={(id) => { setSelectedBrand(id); setStep(2); }}
               hideGenderSelection={!!detectedGender}
+              lang={lang}
             />
           </div>
         )}
@@ -283,13 +319,13 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
         {step === 2 && (
           <div className="w-full max-w-4xl space-y-4 md:space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
             <div className="flex items-center justify-between">
-               <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-900 -ml-2 md:-ml-4 text-xs">← Change Brand</Button>
-               <span className="bg-zinc-100 text-zinc-600 text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-full tracking-widest uppercase">{selectedGender === 'women' ? 'Women' : 'Men'}</span>
+               <Button variant="ghost" onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-900 -ml-2 md:-ml-4 text-xs">← {t('changeBrand', lang)}</Button>
+               <span className="bg-zinc-100 text-zinc-600 text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-full tracking-widest uppercase">{selectedGender === 'women' ? t('women', lang) : t('men', lang)}</span>
             </div>
 
             <div className="text-center space-y-1 md:space-y-2">
                 <h3 className="text-xl md:text-3xl font-light text-zinc-900">
-                    What is your size in <span className="capitalize font-medium">{brands.find(b => b.id === selectedBrand)?.name || selectedBrand}</span>?
+                    {t('whatIsYourSize', lang, { brand: brands.find(b => b.id === selectedBrand)?.name || selectedBrand })}
                 </h3>
             </div>
 
@@ -307,6 +343,7 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
                 activeSizeList={activeSizeList}
                 selectedSize={selectedSize}
                 setSelectedSize={setSelectedSize}
+                lang={lang}
               />
 
               <FeedbackSliders 
@@ -316,10 +353,11 @@ const SmartProfiler = ({ session, onClose, onCancel, onRefreshProfile, onGuestPr
                 setSatisfaction={setSatisfaction}
                 getFeelLabel={getFeelLabel}
                 getSatisfactionLabel={getSatisfactionLabel}
+                lang={lang}
               />
             </div>
 
-            <Button onClick={handleSave} disabled={!selectedSize || isSubmitting} className="w-full h-12 md:h-14 rounded-full text-xs md:text-sm uppercase tracking-widest shadow-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.01]">{isSubmitting ? "Calculating..." : "Analyze"}</Button>
+            <Button onClick={handleSave} disabled={!selectedSize || isSubmitting} className="w-full h-12 md:h-14 rounded-full text-xs md:text-sm uppercase tracking-widest shadow-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.01]">{isSubmitting ? t('calculating', lang) : t('analyze', lang)}</Button>
           </div>
         )}
       </div>

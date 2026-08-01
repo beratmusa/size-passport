@@ -10,7 +10,7 @@ export const loader = async ({ request, params }) => {
   // 1. Ürünü çek
   const { data: product } = await supabase
     .from("merchant_products")
-    .select("*")
+    .select("*, shops(unit_system)")
     .eq("id", id)
     .single();
 
@@ -142,6 +142,18 @@ export default function ProductDetail() {
 
   const isTop = currentCategory === 'top';
 
+  const shopUnitSystem = product?.shops?.unit_system || 'metric';
+  const isImperial = shopUnitSystem === 'imperial';
+  const unitLabel = isImperial ? 'in' : 'cm';
+
+  const displayVal = (val) => {
+    if (!val) return '-';
+    if (isImperial) {
+      return (val / 2.54).toFixed(1);
+    }
+    return val;
+  };
+
   const handleCategoryChange = (e) => {
     const fd = new FormData();
     fd.append("actionType", "update_category");
@@ -155,7 +167,12 @@ export default function ProductDetail() {
     const measurements = {};
     Object.keys(newSize).forEach(key => {
       if (key !== 'label' && newSize[key]) {
-        measurements[key] = parseFloat(newSize[key]);
+        let val = parseFloat(newSize[key]);
+        if (isImperial) {
+          val = val * 2.54; // Convert back to CM for DB
+          val = Math.round(val * 10) / 10;
+        }
+        measurements[key] = val;
       }
     });
     
@@ -204,7 +221,7 @@ export default function ProductDetail() {
         </div>
       </s-section>
 
-      <s-section heading="Current Measurements (cm)">
+      <s-section heading={`Current Measurements (${unitLabel})`}>
         {!sizes || sizes.length === 0 ? (
           <s-paragraph>No sizes added yet. Use the form below to add measurements for each size.</s-paragraph>
         ) : (
@@ -239,19 +256,19 @@ export default function ProductDetail() {
                     <td style={{ padding: '12px', fontWeight: 'bold' }}>{size.size_label}</td>
                     {isTop ? (
                       <>
-                        <td style={{ padding: '12px' }}>{size.measurements.chest || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.shoulder || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.arm || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.length || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.waist || '-'}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.chest)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.shoulder)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.arm)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.length)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.waist)}</td>
                       </>
                     ) : (
                       <>
-                        <td style={{ padding: '12px' }}>{size.measurements.waist || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.hip || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.length || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.inseam || '-'}</td>
-                        <td style={{ padding: '12px' }}>{size.measurements.outseam || '-'}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.waist)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.hip)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.length)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.inseam)}</td>
+                        <td style={{ padding: '12px' }}>{displayVal(size.measurements.outseam)}</td>
                       </>
                     )}
                     <td style={{ padding: '12px' }}>
@@ -266,7 +283,7 @@ export default function ProductDetail() {
       </s-section>
 
       <s-section heading="Add Size Measurements">
-        <s-paragraph>Enter the measurements for a new size. All values should be in centimeters (cm).</s-paragraph>
+        <s-paragraph>Enter the measurements for a new size. All values should be in {isImperial ? 'inches (in)' : 'centimeters (cm)'}.</s-paragraph>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '20px' }}>
           <s-text-field label="Size Label" placeholder="e.g. S, M, 42" value={newSize.label} onChange={(e) => setNewSize({...newSize, label: e.currentTarget.value})} />

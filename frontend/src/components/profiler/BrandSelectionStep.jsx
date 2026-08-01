@@ -1,17 +1,18 @@
 import React from 'react';
+import { t } from '../../lib/i18n';
 
-const BrandSelectionStep = ({ selectedGender, setSelectedGender, brands, loadingData, onSelectBrand, hideGenderSelection }) => {
+const BrandSelectionStep = ({ selectedGender, setSelectedGender, brands, loadingData, onSelectBrand, hideGenderSelection, lang = 'en' }) => {
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {!hideGenderSelection && (
         <div className="flex justify-center mb-6">
           <div className="bg-zinc-100 p-1 rounded-full flex gap-1">
-             <button onClick={() => setSelectedGender('women')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'women' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Women</button>
-             <button onClick={() => setSelectedGender('men')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'men' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>Men</button>
+             <button onClick={() => setSelectedGender('women')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'women' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('women', lang)}</button>
+             <button onClick={() => setSelectedGender('men')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'men' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('men', lang)}</button>
           </div>
         </div>
       )}
-      <div className="text-center space-y-2"><h3 className="text-3xl font-light text-zinc-900">Which brand do you wear most often?</h3></div>
+      <div className="text-center space-y-2"><h3 className="text-3xl font-light text-zinc-900">{t('whichBrand', lang)}</h3></div>
       
       {loadingData ? (
           <div className="flex justify-center text-sm text-zinc-400 animate-pulse">Loading data...</div>

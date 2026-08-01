@@ -1,21 +1,21 @@
-export const normalizeMeasurements = (rawData, category = 'top') => {
+export const normalizeMeasurements = (rawData, category = 'top', isUser = false) => {
   if (!rawData) return null;
   const clean = {};
 
   const MAP = {
     // Üst Giyim
-    chest: ['chest', 'bust', 'width', 'gogus'], // Zara: Chest (Side to side)
-    shoulder: ['shoulder', 'omuz'],
-    arm: ['arm', 'sleeve', 'kol'],
-    length: ['length', 'front_length', 'total_length', 'boy'], // Zara: Front Length (Shoulder to hem)
+    chest: ['chest', 'bust', 'width', 'gogus', 'göğüs', 'poitrine', 'brust', 'torace', 'pecho', 'borst', 'peito', 'bröst', 'bryst', '胸囲', '가슴'], 
+    shoulder: ['shoulder', 'omuz', 'épaule', 'epaule', 'schulter', 'spalla', 'hombro', 'schouder', 'ombro', 'axel', 'skulder', '肩幅', '어깨'],
+    arm: ['arm', 'sleeve', 'kol', 'bras', 'ärmel', 'braccio', 'brazo', 'manga', '袖丈', '팔 길이', '팔길이'],
+    length: ['length', 'front_length', 'total_length', 'boy', 'uzunluk', 'longueur', 'länge', 'lunghezza', 'largo', 'lengte', 'comprimento', 'längd', '総丈', '長さ', '총 기장', '총기장', '길이'], 
 
     // Alt Giyim
-    waist: ['waist', 'bel'], // Zara: Waist (Highest part side to side)
-    hip: ['hip', 'basen', 'kalca'], // Zara: Hip (Widest part side to side)
-    outseam: ['outseam', 'length', 'dis_bacak'], // Jean Boyu
-    inseam: ['inseam', 'ic_bacak'],
-    front_rise: ['front_rise', 'on_ag'], // Zara: Front Rise
-    back_rise: ['back_rise', 'arka_ag']  // Zara: Back Rise
+    waist: ['waist', 'bel', 'taille', 'vita', 'cintura', 'midja', 'talje', 'ウエスト', '허리'], 
+    hip: ['hip', 'basen', 'kalca', 'kalça', 'hanches', 'hüfte', 'fianchi', 'caderas', 'heupen', 'quadril', 'höft', 'hofte', 'ヒップ', '엉덩이'], 
+    outseam: ['outseam', 'length', 'dis_bacak', 'dış_bacak', 'couture_extérieure', 'außennaht', 'cucitura_esterna', 'costura_exterior', 'buitenbeen', 'yttersöm', 'ydersøm', '総丈（パンツ）', '아웃심'], 
+    inseam: ['inseam', 'ic_bacak', 'iç_bacak', 'entrejambe', 'schrittlänge', 'cavallo', 'entrepierna', 'binnenbeen', 'costura_interna', 'innersöm', 'indersøm', '股下', '인심'],
+    front_rise: ['front_rise', 'on_ag', 'ön_ağ'], 
+    back_rise: ['back_rise', 'arka_ag', 'arka_ağ']  
   };
 
   Object.keys(rawData).forEach(key => {
@@ -30,41 +30,28 @@ export const normalizeMeasurements = (rawData, category = 'top') => {
     if (standardKey) {
       let finalVal = val;
       
-      // --- ZARA "SIDE TO SIDE" KURALI (Yarım En -> Tam Çevre) ---
-      
-      // 1. Bel, Basen ve Göğüs Kontrolü
-      // Zara 40cm bel veriyorsa bu yarım endir. 40 * 2 = 80cm Çevre yapar.
-      // (60cm'den küçük tüm "genişlik" ölçülerini yarım en kabul ediyoruz)
+      // Ürün ölçülerinde (isUser = false) genellikle "Yarım En" (Side-to-side) verilir.
+      // 65cm'den küçük göğüs, bel, kalça ölçülerini tam çevreye çeviriyoruz.
+      // Kullanıcı verilerinde (isUser = true) ise her zaman tam çevre girildiğini varsayıyoruz, 
+      // bu nedenle kullanıcının 60cm beli varsa (çok ince biri) bunu 120cm yapmıyoruz.
       if (['chest', 'waist', 'hip'].includes(standardKey)) {
-        if (val < 65) {
+        if (!isUser && val < 65) {
             finalVal = val * 2; 
         }
-        // NOT: İnç (Jeans Size) kontrolünü burada yapmıyoruz çünkü Zara verisi
-        // Product Definition'dan CM olarak geliyor.
       }
-      
-      // 2. İnç Kontrolü (Sadece Kullanıcı Profili veya Dış Kaynaklar için)
-      // Eğer kategori Bottom ise ve Bel 26-38 arasındaysa bu İNÇ bedenidir.
-      // Ancak Zara verisi (Side-to-side) ile karışmaması için bunu sadece
-      // "waist" 40'ın altındaysa ve "hip" yoksa gibi kompleks kontrollerle ayırabiliriz.
-      // Şimdilik Zara'nın CM verdiğini bildiğimiz için üstteki kural yeterli.
 
       clean[standardKey] = Math.round(finalVal);
     }
   });
 
-  // EKSİK VERİ TAMAMLAMA (Fallback)
+  // EKSİK VERİ TAMAMLAMA (Oransal Tahminler)
+  // Sabit değerler (örn: arm=20, length=70) çocuk giyiminde veya farklı tasarımlarda 
+  // hatalı sonuç vereceği için sadece birbiriyle orantılı olan ölçüleri tamamlıyoruz.
   if (category === 'top' || category === 'tshirt') {
       if (clean.chest && !clean.shoulder) clean.shoulder = Math.round(clean.chest * 0.45);
       if (clean.chest && !clean.waist) clean.waist = Math.round(clean.chest * 0.90);
-      if (!clean.arm) clean.arm = 20; 
-      if (!clean.length) clean.length = 70;
   } else {
-      // Bottom
       if (clean.waist && !clean.hip) clean.hip = Math.round(clean.waist * 1.18);
-      // Eğer Jean boyu yoksa standart ver
-      if (!clean.outseam && !clean.length) clean.outseam = 105;
-      // Eğer boy var ama outseam yoksa eşle
       if (!clean.outseam && clean.length) clean.outseam = clean.length;
   }
 
@@ -92,10 +79,15 @@ export const calculateFitScore = (userMeas, productMeas, category, preference = 
   if (!userMeas || !productMeas) return null;
 
   let totalDiff = 0;
-  let count = 0;
+  let totalWeight = 0;
   const details = [];
   
-  const keys = (category === 'top' || category === 'tshirt') 
+  const isTop = (category === 'top' || category === 'tshirt');
+  const WEIGHTS = isTop 
+    ? { chest: 1.5, shoulder: 1.2, waist: 1.0, arm: 0.5, length: 0.5 } 
+    : { waist: 1.5, hip: 1.3, outseam: 0.7, inseam: 0.7, length: 0.7 };
+
+  const keys = isTop 
     ? ['shoulder', 'chest', 'waist', 'arm', 'length'] 
     : ['waist', 'hip', 'inseam', 'outseam', 'length']; 
 
@@ -139,8 +131,9 @@ export const calculateFitScore = (userMeas, productMeas, category, preference = 
         else penalty = Math.abs(diff - 2) * 0.5;
       }
       
-      totalDiff += penalty;
-      count++;
+      const weight = WEIGHTS[key] || 1.0;
+      totalDiff += (penalty * weight);
+      totalWeight += weight;
       
       details.push({ 
           part: key,
@@ -151,8 +144,8 @@ export const calculateFitScore = (userMeas, productMeas, category, preference = 
     }
   });
 
-  if (count === 0) return null;
-  const finalScore = Math.max(0, 100 - (totalDiff / count));
+  if (totalWeight === 0) return null;
+  const finalScore = Math.max(0, 100 - (totalDiff / totalWeight));
   
   return {
     score: Math.round(finalScore),
@@ -246,13 +239,18 @@ export const estimateUserMeasurements = (baseMeasurements, physicalFeel, categor
 export const calculateAIFitScore = (userMeasRaw, productMeasRaw, category, preference) => {
   if (!userMeasRaw || !productMeasRaw) return null;
 
-  const userMeas = normalizeMeasurements(userMeasRaw, category);
-  const productMeas = normalizeMeasurements(productMeasRaw, category);
+  const userMeas = normalizeMeasurements(userMeasRaw, category, true);
+  const productMeas = normalizeMeasurements(productMeasRaw, category, false);
 
   let totalDiff = 0;
-  let count = 0;
+  let totalWeight = 0;
   
-  const keys = (category === 'top' || category === 'tshirt') 
+  const isTop = (category === 'top' || category === 'tshirt');
+  const WEIGHTS = isTop 
+    ? { chest: 1.5, shoulder: 1.2, waist: 1.0, arm: 0.5, length: 0.5 } 
+    : { waist: 1.5, hip: 1.3, outseam: 0.7, inseam: 0.7, length: 0.7 };
+
+  const keys = isTop 
     ? ['shoulder', 'chest', 'waist', 'arm', 'length'] 
     : ['waist', 'hip', 'inseam', 'outseam', 'length']; 
 
@@ -296,13 +294,14 @@ export const calculateAIFitScore = (userMeasRaw, productMeasRaw, category, prefe
         else penalty = Math.abs(diff - 2) * 0.5; // İdealden uzaklaştıkça hafif ceza
       }
       
-      totalDiff += penalty;
-      count++;
+      const weight = WEIGHTS[key] || 1.0;
+      totalDiff += (penalty * weight);
+      totalWeight += weight;
     }
   });
 
-  if (count === 0) return 0;
-  return Math.max(0, 100 - (totalDiff / count));
+  if (totalWeight === 0) return 0;
+  return Math.max(0, 100 - (totalDiff / totalWeight));
 };
 
 export const predictBestSize = (userProfile, availableSizes, category) => {

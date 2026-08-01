@@ -44,24 +44,19 @@ This file serves as a memory log of the most recent modifications and active cha
 * **[`shopify-agent.json`](file:///Users/beratmusayucel/Desktop/size-passport/.gemini/agents/shopify-agent.json):**
   * Created a new agent definition (`shopify_expert`) specialized in Shopify GraphQL/REST Admin APIs, webhook ingestion, and Liquid Theme App Extensions.
 
-### 6. Brand Data Entry (Women's Category - Current Task)
-* Completed Men's Top & Bottom sizing data entry for Zara, Gap, and Levi's.
-* Currently entering Women's Category sizing data into Supabase (`product_definitions` and `size_grading_rules`).
-* Added Zara Women products for both EU (`zara_women_eu_jeans`) and US equivalents (`zara_women_us_jeans`):
-  * **High Waist Extra Wide Leg Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Low Rise Wide Leg Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Straight High Waist Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Mid Waist Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Mid Rise Straight Striped Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Mom Fit High Waist Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-  * **Cropped Flare High Waist Jean** (EU sizes 32, 34, 36... / US sizes 0, 2, 4...)
-* Added Zara Women Top products (`zara_women_us_letter` / Universal letter sizing):
-  * **Short Sleeve Cropped T-Shirt** (M, L, XL...)
-  * **Sleeveless Top** (S, M, L...)
-  * **Ribbed Sleeveless Top** (S, M, L...)
-  * **Regular Rustic Cotton T-Shirt** (S, M, L...)
-  * **Short Sleeve T-Shirt** (XS, S, M...)
-  * **Basic Plush Sweatshirt** (S, M, L...)
+### 7. Analytics Dashboard & Real-time Event Tracking (`app.analytics.jsx` & `WidgetApp.jsx`)
+* **[`app.analytics.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/size-passport-app/app/routes/app.analytics.jsx) (NEW):**
+  * Built a soft pastel UI "Analytics & Metrics" dashboard for store owners displaying:
+    * **Top 3 KPI Grid:** `AI Recommendations` (`recommendation_shown`), `AI-Assisted Cart Adds` (`add_to_cart_with_ai`), and `Cart Conversion Rate`.
+    * **80/20 Vertical-Split Full-Width Card:** `ESTIMATED RETURNS SAVED` (`items prevented` calculated via 28% apparel size return benchmark) with return reduction rates and fit confidence stats in the top 80% section, and the industry benchmark note in the bottom 20% strip with extra breathing room (`marginBottom: 14px`).
+    * **Visualizations:** Size Distribution progress bars (`recommended_size` breakdowns) and a Recent Shopper Activity live table (`profiler_opened`, `recommendation_shown`, `add_to_cart_with_ai`).
+* **[`app._index.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/size-passport-app/app/routes/app._index.jsx) & [`app.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/size-passport-app/app/routes/app.jsx):**
+  * Integrated navigation tab switcher (`📦 Products & Size Charts` vs `📊 Analytics & Return Metrics`) and Shopify Admin sidebar links.
+* **[`WidgetApp.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/frontend/src/WidgetApp.jsx):**
+  * Implemented multi-layered event tracking for `profiler_opened`, `recommendation_shown`, and `add_to_cart_with_ai` / `add_to_cart`.
+  * Added robust interceptors for form submit, `button[name="add"]` / `.add-to-cart` clicks, `window.fetch` (`/cart/add.js`), and `XMLHttpRequest.open` (`/cart/add`) with 2-second throttling to ensure reliable tracking across modern Shopify themes (Dawn, Horizon, etc.) without exiting early on uninitialized AI profiles.
+* **Supabase Security & RLS (`analytics_events`):**
+  * Created `SELECT` RLS policy (`Allow public select on analytics_events`) so `app.analytics.jsx` (using `SUPABASE_ANON_KEY`) can read events and calculate metrics.
 
 ---
 

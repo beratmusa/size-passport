@@ -4,6 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { predictBestSize } from './lib/size-engine';
 import useProductData from './hooks/useProductData';
 import { detectProductCategory } from './lib/utils';
+import { t } from './lib/i18n';
 
 // Components
 import SmartProfiler from './components/SmartProfiler';
@@ -52,8 +53,19 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
   }, []);
 
   useEffect(() => {
-    if (!session?.user) return;
-    fetchUserProfile(session.user.id);
+    if (session?.user) {
+      fetchUserProfile(session.user.id);
+    } else {
+      // Misafir profili (Guest Profile) local storage kontrolü
+      const storedProfile = localStorage.getItem('size_passport_guest_profile');
+      if (storedProfile) {
+        try {
+          setUserProfile(JSON.parse(storedProfile));
+        } catch (e) {
+          console.error("Local storage parse error:", e);
+        }
+      }
+    }
   }, [session]);
 
   const fetchUserProfile = async (userId) => {
@@ -66,6 +78,16 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
   };
 
   const handleSmartCheck = () => {
+    try {
+      supabase.from('analytics_events').insert({
+        user_id: session?.user?.id || null,
+        product_id: productId,
+        event_type: 'profiler_opened',
+        shop: shopDomain
+      }).then(() => {});
+    } catch (e) {
+      console.error('Tracking error:', e);
+    }
     // Commented out login requirement for testing
     // if (!session) {
     //   setActiveModal('login');
@@ -86,22 +108,44 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
   useEffect(() => {
     if (sizes.length === 0) return;
     
+    // Helper to safely match size string
+    const matchSize = (sizesArray, valText) => {
+      if (!valText) return null;
+      const val = valText.toLowerCase().trim();
+      const sortedSizes = [...sizesArray].sort((a, b) => b.size.length - a.size.length);
+      
+      return sortedSizes.find(s => {
+          const sz = s.size.toLowerCase();
+          if (sz === val) return true;
+          
+          try {
+              // Exact word match to prevent "size: m" matching "s"
+              const escapedSz = sz.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escapedSz}\\b`, 'i');
+              if (regex.test(val)) return true;
+          } catch(e) {}
+          
+          // Fallback only if the size is longer than 1 character (prevents "s" matching "small")
+          if (sz.length > 1 && val.includes(sz)) return true;
+          return false;
+      });
+    };
+
     // Auto-detect initial size if possible
     const checkedRadio = document.querySelector('input[type="radio"]:checked');
     if (checkedRadio) {
-      const val = checkedRadio.value.toLowerCase().trim();
-      const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+      const val = checkedRadio.value;
+      const matched = matchSize(sizes, val);
       if (matched) setCurrentShopifySize(matched.size);
     }
 
     const handleChange = (e) => {
         if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'radio') {
-            const val = e.target.value.toLowerCase().trim();
-            const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+            const matched = matchSize(sizes, e.target.value);
             if (matched) setCurrentShopifySize(matched.size);
         } else if (e.target.tagName.toLowerCase() === 'select') {
-            const val = e.target.value.toLowerCase().trim();
-            const matched = sizes.find(s => s.size.toLowerCase() === val || (e.target.options[e.target.selectedIndex] && e.target.options[e.target.selectedIndex].text.toLowerCase().includes(s.size.toLowerCase())));
+            const val = e.target.options[e.target.selectedIndex] ? e.target.options[e.target.selectedIndex].text : e.target.value;
+            const matched = matchSize(sizes, val);
             if (matched) setCurrentShopifySize(matched.size);
         }
     };
@@ -111,12 +155,10 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
         if (label) {
             const input = document.getElementById(label.htmlFor);
             if (input && input.value) {
-                const val = input.value.toLowerCase().trim();
-                const matched = sizes.find(s => s.size.toLowerCase() === val || val.includes(s.size.toLowerCase()));
+                const matched = matchSize(sizes, input.value);
                 if (matched) setCurrentShopifySize(matched.size);
             } else {
-                 const val = label.innerText.toLowerCase().trim();
-                 const matched = sizes.find(s => s.size.toLowerCase() === val);
+                 const matched = matchSize(sizes, label.innerText);
                  if (matched) setCurrentShopifySize(matched.size);
             }
         }
@@ -153,15 +195,22 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
 
   // Track Add to Cart Events
   useEffect(() => {
-    if (!userProfile || !selectedProductData || !bestSizeResult?.size) return;
+    if (!shopDomain) return;
 
+    let isTracking = false;
     const trackAddToCart = async () => {
+      if (isTracking) return;
+      isTracking = true;
+      setTimeout(() => { isTracking = false; }, 2000);
+
       try {
+        const eventType = bestSizeResult?.size ? 'add_to_cart_with_ai' : 'add_to_cart';
+        const recSize = bestSizeResult?.size || currentShopifySize || null;
         await supabase.from('analytics_events').insert({
           user_id: session?.user?.id || null,
-          product_id: productId,
-          event_type: 'add_to_cart_with_ai',
-          recommended_size: bestSizeResult.size,
+          product_id: productId || 'unknown_product',
+          event_type: eventType,
+          recommended_size: recSize,
           shop: shopDomain
         });
       } catch (e) {
@@ -171,26 +220,67 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
 
     const handleCartSubmit = (e) => {
       const form = e.target;
-      if (form && form.action && form.action.includes('/cart/add')) {
+      if (form && (form.action && form.action.includes('/cart/add') || form.querySelector('button[name="add"], input[name="add"], button[type="submit"]'))) {
+        trackAddToCart();
+      }
+    };
+
+    const handleCartClick = (e) => {
+      const btn = e.target.closest('button[name="add"], input[name="add"], button[type="submit"][name="add"], .product-form__submit, .add-to-cart-button, [data-add-to-cart]');
+      if (btn && !btn.disabled) {
         trackAddToCart();
       }
     };
 
     const origFetch = window.fetch;
     window.fetch = async (...args) => {
-      const url = args[0];
-      if (typeof url === 'string' && url.includes('/cart/add')) {
+      let urlStr = '';
+      if (typeof args[0] === 'string') urlStr = args[0];
+      else if (args[0] && typeof args[0] === 'object' && args[0].url) urlStr = args[0].url;
+      else if (args[0] && typeof args[0]?.toString === 'function') urlStr = args[0].toString();
+
+      if (urlStr && (urlStr.includes('/cart/add') || urlStr.includes('/cart/add.js') || urlStr.includes('/cart/add.json'))) {
         trackAddToCart();
       }
       return origFetch(...args);
     };
 
+    const origOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+      if (typeof url === 'string' && (url.includes('/cart/add') || url.includes('/cart/add.js') || url.includes('/cart/add.json'))) {
+        trackAddToCart();
+      }
+      return origOpen.call(this, method, url, ...rest);
+    };
+
     document.addEventListener('submit', handleCartSubmit);
+    document.addEventListener('click', handleCartClick);
     return () => {
       document.removeEventListener('submit', handleCartSubmit);
+      document.removeEventListener('click', handleCartClick);
       window.fetch = origFetch;
+      XMLHttpRequest.prototype.open = origOpen;
     };
-  }, [userProfile, selectedProductData, bestSizeResult, session, productId, shopDomain]);
+  }, [bestSizeResult?.size, currentShopifySize, session?.user?.id, productId, shopDomain]);
+
+  // Track Recommendation Shown Events
+  useEffect(() => {
+    if (!bestSizeResult?.size || !shopDomain) return;
+    const trackRecommendation = async () => {
+      try {
+        await supabase.from('analytics_events').insert({
+          user_id: session?.user?.id || null,
+          product_id: productId,
+          event_type: 'recommendation_shown',
+          recommended_size: bestSizeResult.size,
+          shop: shopDomain
+        });
+      } catch (e) {
+        console.error('Tracking error:', e);
+      }
+    };
+    trackRecommendation();
+  }, [bestSizeResult?.size, session?.user?.id, productId, shopDomain]);
 
   // Highlight AI Recommended Size in Shopify Theme
   useEffect(() => {
@@ -346,7 +436,7 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
           </svg>
         </span>
         <span className="tracking-tight italic">
-          {userProfile ? 'View My Fit Analysis' : 'Find My Size with AI'}
+          {userProfile ? t('viewFit', product?.shops?.language) : t('findSize', product?.shops?.language)}
         </span>
         <svg className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -378,13 +468,13 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
             <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <h2 className="text-2xl font-bold mb-2">Size Passport</h2>
-            <p className="text-zinc-500 mb-6 text-sm">Please login to access your smart size recommendations.</p>
+            <h2 className="text-2xl font-bold mb-2">SizePassport</h2>
+            <p className="text-zinc-500 mb-6 text-sm">{t('loginRequired', product?.shops?.language || 'en')}</p>
             <button 
               onClick={handleLogin}
               className="w-full bg-zinc-900 text-white py-3 rounded-xl font-medium hover:bg-zinc-800 transition-colors"
             >
-              Continue with Google
+              {t('continueGoogle', product?.shops?.language || 'en')}
             </button>
           </div>
         </div>
@@ -399,11 +489,16 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
               productCategory={product?.category || 'tops'}
               productSubCategory={product?.sub_category || 't-shirt'}
               productFit={product?.fit_type || 'regular'}
+              productGender={product?.gender || null}
               productName={product?.name || productTitle}
+              userProfile={userProfile}
+              lang={product?.shops?.language || 'en'}
 
-              
               onRefreshProfile={() => session && fetchUserProfile(session.user.id)}
-              onGuestProfileCreated={(profile) => setUserProfile(profile)}
+              onGuestProfileCreated={(profile) => {
+                setUserProfile(profile);
+                localStorage.setItem('size_passport_guest_profile', JSON.stringify(profile));
+              }}
               onClose={() => {
                 // Determine if we should go to analyzer based on whether we have a profile.
                 // Note: userProfile might not be instantly available in this closure, 
@@ -426,6 +521,15 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
                 userProfile={userProfile} 
                 productData={selectedProductData} 
                 onUpdateProfile={() => setActiveModal('wizard')} 
+                onProfileDeleted={() => {
+                  setUserProfile(null);
+                  localStorage.removeItem('size_passport_guest_profile');
+                  setActiveModal('wizard');
+                }}
+                onProfileUpdated={(updatedProfile) => {
+                  setUserProfile(updatedProfile);
+                  localStorage.setItem('size_passport_guest_profile', JSON.stringify(updatedProfile));
+                }}
                 onClose={() => setActiveModal('none')} 
             />
         </div>

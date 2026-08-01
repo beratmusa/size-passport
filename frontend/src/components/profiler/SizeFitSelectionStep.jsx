@@ -1,6 +1,7 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { t } from '../../lib/i18n';
 
 const SizeFitSelectionStep = ({
   selectedSubCategory,
@@ -14,16 +15,17 @@ const SizeFitSelectionStep = ({
   availableSystems,
   activeSizeList,
   selectedSize,
-  setSelectedSize
+  setSelectedSize,
+  lang = 'en'
 }) => {
   return (
     <div className="space-y-5">
       {/* --- ÜRÜN (SUB CATEGORY) DROPDOWN --- */}
       <div className="space-y-1">
-         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Product Type</label>
+         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">{t('productType', lang)}</label>
          <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
           <SelectTrigger className="h-10 bg-white border-zinc-200 capitalize">
-              <SelectValue placeholder="Select Product" />
+              <SelectValue placeholder={t('selectProduct', lang)} />
           </SelectTrigger>
           <SelectContent>
             {(brandSubCategories.length > 0 ? brandSubCategories : [selectedSubCategory]).map((subCat) => (
@@ -37,10 +39,10 @@ const SizeFitSelectionStep = ({
 
       {/* --- FİLTRELENMİŞ KESİM DROPDOWN --- */}
       <div className="space-y-1">
-         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Fit / Cut</label>
+         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">{t('fitCut', lang)}</label>
          <Select value={selectedFit} onValueChange={setSelectedFit}>
           <SelectTrigger className="h-10 bg-white border-zinc-200 capitalize">
-              <SelectValue placeholder="Select Fit" />
+              <SelectValue placeholder={t('selectFit', lang)} />
           </SelectTrigger>
           <SelectContent>
             {filteredFits.length > 0 ? (
@@ -72,7 +74,7 @@ const SizeFitSelectionStep = ({
       )}
 
       <div className="space-y-2 pt-1">
-        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Select Your Size</label>
+        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">{t('selectYourSize', lang)}</label>
         <div className="grid grid-cols-4 gap-2 max-h-[140px] overflow-y-auto pr-1">
           {activeSizeList.map(s => {
             const label = typeof s === 'string' ? s : s.label;

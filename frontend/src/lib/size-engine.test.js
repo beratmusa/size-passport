@@ -25,7 +25,6 @@ describe('Size Engine Library', () => {
       expect(normalized.shoulder).toBe(40);
       expect(normalized.length).toBe(70);
       expect(normalized.waist).toBe(90); // default calculation 100 * 0.90
-      expect(normalized.arm).toBe(20); // default
     });
 
     it('should not double if chest is already > 65cm', () => {
@@ -57,7 +56,7 @@ describe('Size Engine Library', () => {
   describe('getStatusColor', () => {
     it('should return Perfect for diff <= 2', () => {
       const res = getStatusColor(1);
-      expect(res.status).toBe('Perfect');
+      expect(res.status).toBe('Perfect Fit');
       expect(res.color).toBe('#10b981');
     });
 

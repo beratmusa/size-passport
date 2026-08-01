@@ -34,7 +34,7 @@ const useProductData = (productId, options = {}) => {
         
         const { data: productData, error: productError } = await supabase
           .from('merchant_products')
-          .select('*')
+          .select('*, shops(unit_system, language)')
           .eq(column, productId.toString())
           .single();
 

@@ -23,7 +23,7 @@ export const detectProductCategory = (cat, name) => {
   
   const bottomKeywords = [
     'pants', 'jeans', 'shorts', 'skirt', 'leggings', 'trousers', 'bottom', 
-    'pantolon', 'şort', 'etek', 'tayt', 'pant', 'jean', 'denim', 'eşofman'
+    'pantolon', 'şort', 'etek', 'tayt', 'pant', 'jean', 'eşofman'
   ];
   
   const combined = `${cat || ''} ${name || ''}`.toLowerCase();
@@ -44,7 +44,7 @@ export const detectProductCategory = (cat, name) => {
  */
 export const detectProductGender = (cat, name) => {
   const combined = `${cat || ''} ${name || ''}`.toLowerCase();
-  if (combined.includes('kadın') || combined.includes('women') || combined.includes('female') || combined.includes('bayan')) return 'women';
-  if (combined.includes('erkek') || combined.includes('men') || combined.includes('male') || combined.includes('bay ')) return 'men';
+  if (combined.includes('kadın') || combined.includes('kadin') || combined.includes('women') || combined.includes('woman') || combined.includes('female') || combined.includes('bayan')) return 'women';
+  if (combined.includes('erkek') || combined.includes('men') || combined.includes('man ') || combined.includes('male') || combined.includes('bay ')) return 'men';
   return null;
 };
