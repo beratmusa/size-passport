@@ -49,9 +49,10 @@ export default function GuidePage() {
               Add Your Size Charts
             </h3>
             <p style={{ margin: '0 0 12px 0', color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
-              You have two ways to add size charts to your products:
+              You have three ways to add size charts to your products:
             </p>
             <ul style={{ margin: '0', paddingLeft: '20px', color: '#4b5563', fontSize: '14px', lineHeight: '1.6' }}>
+              <li><strong>AI Auto-Scan (Recommended):</strong> Simply click the "Sync & Auto-Detect Sizes" button on the Dashboard. Our visual AI will scan your product images, extract the size tables, and save them automatically.</li>
               <li><strong>Manual Entry:</strong> Go to the <Link to="/app" style={{color: '#2563eb', textDecoration: 'none'}}>Products & Size Charts</Link> tab, select a product, and type the measurements directly into the table.</li>
               <li><strong>Automatic Sync (Metafields):</strong> If you already store your size charts as JSON data in Shopify Metafields, our system pulls them automatically. You can configure your Metafield Namespace and Key in Settings.</li>
             </ul>

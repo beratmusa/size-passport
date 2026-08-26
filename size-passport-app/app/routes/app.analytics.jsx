@@ -58,7 +58,7 @@ export const loader = async ({ request }) => {
 
   return {
     shop,
-    events: safeEvents.slice(0, 30), // Top 30 for activity table
+    safeEvents, // Full events list (limited to 500 in query)
     totalRecommendations,
     totalAddToCart,
     totalProfilerOpened,
@@ -73,14 +73,18 @@ export default function AnalyticsDashboard() {
   const {
     shop,
     events,
+    activeProductsCount,
     totalRecommendations,
     totalAddToCart,
     totalProfilerOpened,
     conversionRate,
     estimatedReturnsSaved,
     sizeDistribution,
-    activeProductsCount
+    safeEvents
   } = useLoaderData();
+
+  const [visibleEventCount, setVisibleEventCount] = useState(15);
+  const visibleEvents = safeEvents.slice(0, visibleEventCount);
 
   const [timeRange, setTimeRange] = useState("all");
 
@@ -572,7 +576,7 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        {events.length === 0 ? (
+        {safeEvents.length === 0 ? (
           <div style={{ 
             padding: '48px 20px', 
             textAlign: 'center', 
@@ -600,7 +604,7 @@ export default function AnalyticsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((event) => {
+                {visibleEvents.map((event) => {
                   let badgeBg = '#f1f5f9';
                   let badgeColor = '#475569';
                   let badgeLabel = event.event_type;
@@ -660,6 +664,29 @@ export default function AnalyticsDashboard() {
                 })}
               </tbody>
             </table>
+            
+            {visibleEventCount < safeEvents.length && (
+              <div style={{ textAlign: 'center', marginTop: '20px', padding: '10px' }}>
+                <button 
+                  onClick={() => setVisibleEventCount(prev => prev + 10)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                >
+                  Load More (+10)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

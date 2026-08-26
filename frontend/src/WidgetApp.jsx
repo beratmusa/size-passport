@@ -93,7 +93,19 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
     //   setActiveModal('login');
     //   return;
     // }
+    const cat = product ? detectProductCategory(product.category, product.title) : 'top';
+    const isBottom = cat === 'bottom' || cat === 'pants' || cat === 'jeans' || cat === 'shorts' || cat === 'skirt';
+    
+    let hasRelevantMeasurements = false;
     if (userProfile?.measurements) {
+      if (isBottom) {
+        hasRelevantMeasurements = !!(userProfile.measurements.waist || userProfile.measurements.hip || userProfile.measurements.outseam || userProfile.measurements.inseam);
+      } else {
+        hasRelevantMeasurements = !!(userProfile.measurements.chest || userProfile.measurements.shoulder || userProfile.measurements.arm || userProfile.measurements.length);
+      }
+    }
+
+    if (hasRelevantMeasurements) {
       setActiveModal('analyzer');
     } else {
       setActiveModal('wizard');

@@ -345,11 +345,58 @@ export default function Index() {
   const submit = useSubmit();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState("ALL"); // ALL, ACTIVE, MISSING
+  
+  // AI Scan States
+  // AI Scan States
+  const [isScanning, setIsScanning] = useState(false);
+  const [isAutoScanning, setIsAutoScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState({ current: 0, total: 0, currentProduct: "" });
 
-  const isSyncing = navigation.state === "submitting";
+  const isSyncing = navigation.state === "submitting" && !isScanning;
 
-  const handleSync = () => {
-    submit(null, { method: "post" });
+  const handleSyncAndScan = () => {
+    setIsAutoScanning(true);
+    submit(null, { method: "post" }); // This triggers the Shopify Sync first
+  };
+
+  useEffect(() => {
+    // When Shopify Sync finishes, automatically trigger the AI Scan
+    if (isAutoScanning && navigation.state === "idle" && actionData?.success) {
+      const missingProducts = products.filter(p => p.size_status === "MISSING");
+      if (missingProducts.length > 0) {
+        startBulkScan(missingProducts);
+      } else {
+        setIsAutoScanning(false);
+      }
+    }
+  }, [navigation.state, actionData, products, isAutoScanning]);
+
+  const startBulkScan = async (missingProducts) => {
+    setIsScanning(true);
+    setScanProgress({ current: 0, total: missingProducts.length, currentProduct: "" });
+
+    for (let i = 0; i < missingProducts.length; i++) {
+      const p = missingProducts[i];
+      setScanProgress({ current: i + 1, total: missingProducts.length, currentProduct: p.name });
+      
+      const formData = new FormData();
+      formData.append("productId", p.id);
+      formData.append("shopifyProductId", p.shopify_product_id);
+      
+      try {
+        await fetch("/api/scan", {
+          method: "POST",
+          body: formData
+        });
+      } catch (err) {
+        console.error("Scan failed for", p.name, err);
+      }
+    }
+    
+    setIsScanning(false);
+    setIsAutoScanning(false);
+    alert("Store Sync & AI Scan completed successfully!");
+    window.location.reload();
   };
 
   // Navigasyon sonrası render kontrolü için log
@@ -367,6 +414,9 @@ export default function Index() {
       return true;
     });
   }, [products, searchQuery, filterMode]);
+  
+  const [visibleProductCount, setVisibleProductCount] = useState(15);
+  const visibleProducts = filteredProducts.slice(0, visibleProductCount);
   
   const missingProductCount = products?.filter(p => p.size_status === "MISSING").length || 0;
 
@@ -475,14 +525,35 @@ export default function Index() {
           <s-paragraph>
             Manage your products and size charts below. Products synced from your Shopify store are listed here.
           </s-paragraph>
-          <s-button 
-            onClick={handleSync} 
-            disabled={isSyncing}
-            variant="primary"
-          >
-            {isSyncing ? "Syncing..." : "Sync Products from Store"}
-          </s-button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <s-button 
+              onClick={handleSyncAndScan} 
+              disabled={isSyncing || isScanning || isAutoScanning}
+              variant="primary"
+            >
+              {(isSyncing || isAutoScanning) && !isScanning ? "Syncing..." : isScanning ? "🤖 Scanning..." : "Sync & Auto-Detect Sizes"}
+            </s-button>
+          </div>
         </div>
+
+        {isScanning && (
+          <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#166534' }}>🤖 Yapay Zeka Devrede...</h4>
+            <div style={{ width: '100%', backgroundColor: '#dcfce7', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
+              <div style={{ 
+                height: '100%', 
+                backgroundColor: '#22c55e', 
+                width: `${(scanProgress.current / scanProgress.total) * 100}%`,
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+            <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#15803d' }}>
+              Taranıyor: <strong>{scanProgress.current} / {scanProgress.total}</strong> 
+              <br/>
+              <small>Şu anki ürün: {scanProgress.currentProduct}</small>
+            </p>
+          </div>
+        )}
       </s-section>
 
       {/* Arama Çubuğunu da bir s-section içine alıyoruz ki navigasyonda kaybolmasın */}
@@ -514,13 +585,13 @@ export default function Index() {
         </div>
         
         <div style={{ marginTop: '10px' }}>
-          {!filteredProducts || filteredProducts.length === 0 ? (
+          {!visibleProducts || visibleProducts.length === 0 ? (
             <s-paragraph>
               {searchQuery ? "No products found matching your search." : "No products found. Products will appear here once they are synced via webhooks."}
             </s-paragraph>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredProducts.map(product => (
+              {visibleProducts.map(product => (
                 <div key={product.id} style={{ 
                   padding: '16px', 
                   border: '1px solid #e1e3e5', 
@@ -549,6 +620,29 @@ export default function Index() {
                   </Link>
                 </div>
               ))}
+              
+              {visibleProductCount < filteredProducts.length && (
+                <div style={{ textAlign: 'center', marginTop: '16px', padding: '10px' }}>
+                  <button 
+                    onClick={() => setVisibleProductCount(prev => prev + 10)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                  >
+                    Load More (+10)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
