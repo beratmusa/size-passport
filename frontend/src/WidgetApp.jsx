@@ -505,6 +505,7 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
               productName={product?.name || productTitle}
               userProfile={userProfile}
               lang={product?.shops?.language || 'en'}
+              unitSystem={product?.shops?.unit_system || 'cm'}
 
               onRefreshProfile={() => session && fetchUserProfile(session.user.id)}
               onGuestProfileCreated={(profile) => {

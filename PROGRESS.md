@@ -7,6 +7,12 @@ This file serves as a memory log of the most recent modifications and active cha
 ## 🛠️ Uncommitted Active Changes (Current Workspace)
 
 ### 1. Frontend & Widget UI Enhancements (`frontend/src/`)
+* **[`ManualMeasurementsStep.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/frontend/src/components/profiler/ManualMeasurementsStep.jsx) & [`SmartProfiler.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/frontend/src/components/SmartProfiler.jsx):**
+  * Added multi-language support (i18n) for the manual body measurement entry screen across 11 languages (EN, TR, FR, IT, ES, NL, PT, SV, DA, JA, KO).
+  * Fixed an issue where the manual entry button text was hidden inside the Shopify iframe by removing restricted responsive Tailwind classes (`hidden md:inline`).
+  * Implemented dynamic unit system detection based on the merchant's dashboard configuration (`product.shops.unit_system`). The form now correctly prompts for and accepts either Metric (cm) or Imperial (in) inputs.
+  * Added background normalization to silently convert Imperial (in) inputs into Metric (cm) before saving, ensuring perfect compatibility with the AI size engine.
+
 * **[`WidgetApp.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/frontend/src/WidgetApp.jsx) & [`main.jsx`](file:///Users/beratmusayucel/Desktop/size-passport/frontend/src/main.jsx):** 
   * Refined size recommendation button layout. Added support for desktop & mobile specific scaling and alignment overrides.
   * Fixed a critical frontend runtime crash: replaced Node-style dynamic `require('./lib/utils')` call in `bestSizeResult` useMemo with ES static `import { detectProductCategory } from './lib/utils'` to prevent browser crash and disappearing analyze modal screen.

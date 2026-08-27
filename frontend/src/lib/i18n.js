@@ -111,7 +111,13 @@ export const translations = {
     "skirt": "Skirt",
     "dress": "Dress",
     "top": "Top",
-    "bottom": "Bottom"
+    "bottom": "Bottom",
+    manualEntryBtn: "Enter Manually",
+    manualEntry: "MANUAL ENTRY",
+    enterMeasurementsTitle: "Enter Body Measurements",
+    enterMeasurementsDesc: "Please enter your measurements in {unit}.",
+    saveMeasurements: "Save Measurements",
+    back: "Back"
   },
   tr: {
     // Buttons & CTAs
@@ -223,7 +229,13 @@ export const translations = {
     "skirt": "Etek",
     "dress": "Elbise",
     "top": "Üst Giyim",
-    "bottom": "Alt Giyim"
+    "bottom": "Alt Giyim",
+    manualEntryBtn: "Kendin Gir",
+    manualEntry: "ELLE GİRİŞ",
+    enterMeasurementsTitle: "Vücut Ölçülerinizi Girin",
+    enterMeasurementsDesc: "Lütfen ölçülerinizi {unit} cinsinden giriniz.",
+    saveMeasurements: "Ölçüleri Kaydet",
+    back: "Geri"
   }
   ,de: {
     findSize: "Meine Größe mit KI finden",
@@ -409,7 +421,13 @@ export const translations = {
     "skirt": "Jupe",
     "dress": "Robe",
     "top": "Haut",
-    "bottom": "Bas"
+    "bottom": "Bas",
+    manualEntryBtn: "Saisir Manuellement",
+    manualEntry: "SAISIE MANUELLE",
+    enterMeasurementsTitle: "Saisissez Vos Mensurations",
+    enterMeasurementsDesc: "Veuillez saisir vos mensurations en {unit}.",
+    saveMeasurements: "Enregistrer",
+    back: "Retour"
   },
   it: {
     findSize: "Trova la mia taglia con l'IA",
@@ -502,7 +520,13 @@ export const translations = {
     "skirt": "Gonna",
     "dress": "Vestito",
     "top": "Top",
-    "bottom": "Sotto"
+    "bottom": "Sotto",
+    manualEntryBtn: "Inserisci Manualmente",
+    manualEntry: "INSERIMENTO MANUALE",
+    enterMeasurementsTitle: "Inserisci Le Tue Misure",
+    enterMeasurementsDesc: "Inserisci le tue misure in {unit}.",
+    saveMeasurements: "Salva Misure",
+    back: "Indietro"
   },
   es: {
     findSize: "Encuentra mi talla con IA",
@@ -595,7 +619,13 @@ export const translations = {
     "skirt": "Falda",
     "dress": "Vestido",
     "top": "Parte Superior",
-    "bottom": "Parte Inferior"
+    "bottom": "Parte Inferior",
+    manualEntryBtn: "Ingresar Manualmente",
+    manualEntry: "INGRESO MANUAL",
+    enterMeasurementsTitle: "Ingresa Tus Medidas",
+    enterMeasurementsDesc: "Por favor, ingresa tus medidas en {unit}.",
+    saveMeasurements: "Guardar Medidas",
+    back: "Atrás"
   },
   nl: {
     findSize: "Vind mijn maat met AI",
@@ -688,7 +718,13 @@ export const translations = {
     "skirt": "Rok",
     "dress": "Jurk",
     "top": "Top",
-    "bottom": "Broek"
+    "bottom": "Broek",
+    manualEntryBtn: "Handmatig Invoeren",
+    manualEntry: "HANDMATIGE INVOER",
+    enterMeasurementsTitle: "Voer Je Lichaamsmaten In",
+    enterMeasurementsDesc: "Voer je maten in {unit} in.",
+    saveMeasurements: "Maten Opslaan",
+    back: "Terug"
   },
   pt: {
     findSize: "Encontrar meu tamanho com IA",
@@ -781,7 +817,13 @@ export const translations = {
     "skirt": "Saia",
     "dress": "Vestido",
     "top": "Parte Superior",
-    "bottom": "Parte Inferior"
+    "bottom": "Parte Inferior",
+    manualEntryBtn: "Inserir Manualmente",
+    manualEntry: "ENTRADA MANUAL",
+    enterMeasurementsTitle: "Insira Suas Medidas",
+    enterMeasurementsDesc: "Por favor, insira suas medidas em {unit}.",
+    saveMeasurements: "Salvar Medidas",
+    back: "Voltar"
   },
   sv: {
     findSize: "Hitta min storlek med AI",
@@ -874,7 +916,13 @@ export const translations = {
     "skirt": "Kjol",
     "dress": "Klänning",
     "top": "Överdel",
-    "bottom": "Underdel"
+    "bottom": "Underdel",
+    manualEntryBtn: "Ange Manuellt",
+    manualEntry: "MANUELL INMATNING",
+    enterMeasurementsTitle: "Ange Kroppsmått",
+    enterMeasurementsDesc: "Vänligen ange dina mått i {unit}.",
+    saveMeasurements: "Spara Mått",
+    back: "Tillbaka"
   },
   da: {
     findSize: "Find min størrelse med AI",
@@ -967,7 +1015,13 @@ export const translations = {
     "skirt": "Nederdel",
     "dress": "Kjole",
     "top": "Overdel",
-    "bottom": "Underdel"
+    "bottom": "Underdel",
+    manualEntryBtn: "Indtast Manuelt",
+    manualEntry: "MANUEL INDTASTNING",
+    enterMeasurementsTitle: "Indtast Kropsmål",
+    enterMeasurementsDesc: "Indtast venligst dine mål i {unit}.",
+    saveMeasurements: "Gem Mål",
+    back: "Tilbage"
   },
   ja: {
     findSize: "AIでマイサイズを探す",
@@ -1060,7 +1114,13 @@ export const translations = {
     "skirt": "スカート",
     "dress": "ワンピース",
     "top": "トップス",
-    "bottom": "ボトムス"
+    "bottom": "ボトムス",
+    manualEntryBtn: "手動入力",
+    manualEntry: "手動入力",
+    enterMeasurementsTitle: "身体サイズを入力",
+    enterMeasurementsDesc: "サイズを {unit} で入力してください。",
+    saveMeasurements: "サイズを保存",
+    back: "戻る"
   },
   ko: {
     findSize: "AI로 내 사이즈 찾기",
@@ -1153,7 +1213,13 @@ export const translations = {
     "skirt": "치마",
     "dress": "원피스",
     "top": "상의",
-    "bottom": "하의"
+    "bottom": "하의",
+    manualEntryBtn: "직접 입력",
+    manualEntry: "직접 입력",
+    enterMeasurementsTitle: "신체 치수 입력",
+    enterMeasurementsDesc: "{unit} 단위로 치수를 입력해 주세요.",
+    saveMeasurements: "치수 저장",
+    back: "뒤로"
   }
 };
 

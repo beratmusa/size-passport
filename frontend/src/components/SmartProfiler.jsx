@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import BrandSelectionStep from './profiler/BrandSelectionStep';
 import SizeFitSelectionStep from './profiler/SizeFitSelectionStep';
 import FeedbackSliders from './profiler/FeedbackSliders';
-import { estimateUserMeasurements, sortSizes } from '../lib/size-engine';
+import ManualMeasurementsStep from './profiler/ManualMeasurementsStep';
+import { estimateUserMeasurements, sortSizes, normalizeMeasurements } from '../lib/size-engine';
 import { detectProductCategory, detectProductGender } from '../lib/utils';
 
 const SIZE_CONFIG = {
@@ -15,7 +16,7 @@ const SIZE_CONFIG = {
   inch: ['28', '29', '30', '31', '32', '33', '34', '36', '38']
 };
 
-const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory, productGender, productName, lang = 'en' }) => {
+const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfile, onGuestProfileCreated, productCategory, productSubCategory, productGender, productName, lang = 'en', unitSystem = 'cm' }) => {
   const [step, setStep] = useState(1);
   const [brands, setBrands] = useState([]);
   const [availableBrandIds, setAvailableBrandIds] = useState([]);
@@ -272,6 +273,63 @@ const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfi
     }
   };
 
+  const handleManualSave = async (manualMeasurements) => {
+    setIsSubmitting(true);
+    
+    // Normalize measurements for size engine
+    const bodyMeasurements = normalizeMeasurements(manualMeasurements, category, true);
+
+    const historyEntry = {
+      id: Date.now().toString(),
+      brand: 'Manual',
+      size: 'Custom',
+      fit: 'regular',
+      category,
+      subCategory: selectedSubCategory,
+      measurements: bodyMeasurements,
+      preference: 'regular',
+      date: new Date().toISOString()
+    };
+
+    let history = userProfile?.preferences?.history || [];
+    // Remove old manual entry for same category if exists
+    history = [historyEntry, ...history.filter(h => h.brand !== 'Manual' || h.category !== category)];
+
+    const profileData = {
+      gender: selectedGender,
+      measurements: bodyMeasurements,
+      preferences: { 
+        default_fit: 'regular', 
+        reference_brand: 'Manual', 
+        reference_size: 'Custom',
+        history
+      },
+      updated_at: new Date()
+    };
+
+    let error = null;
+    if (session?.user?.id) {
+      profileData.id = session.user.id;
+      const res = await supabase.from('user_profiles').upsert(profileData);
+      error = res.error;
+    }
+
+    setIsSubmitting(false);
+
+    if (!error) {
+      if (!session?.user?.id && onGuestProfileCreated) {
+        toast.success(t('profileCreated', lang) || 'Profil başarıyla oluşturuldu');
+        onGuestProfileCreated(profileData);
+      } else {
+        toast.success(t('profileSuccess', lang) || 'Ölçüleriniz başarıyla kaydedildi');
+        if (onRefreshProfile) await onRefreshProfile();
+      }
+      setTimeout(() => { if (onClose) onClose(); }, 600);
+    } else {
+      toast.error(t('errorOccurred', lang) || 'Bir hata oluştu');
+    }
+  };
+
   // UI Helper Fonksiyonları...
   const getFeelLabel = (val) => {
     if (val === 0) return t('tooSmall', lang);
@@ -298,6 +356,16 @@ const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfi
           <p className="text-zinc-500 text-[10px] md:text-sm mt-0.5 md:mt-1">{step === 1 ? t('refBrandSelection', lang) : t('detailedAnalysis', lang)}</p>
         </div>
         <div className="flex items-center gap-2">
+          {step === 1 && (
+            <Button 
+              variant="ghost" 
+              onClick={() => setStep('manual')} 
+              className="h-8 md:h-10 px-3 rounded-full text-xs font-medium gap-2 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-ruler"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>
+              <span className="ml-1">{t('manualEntryBtn', lang) || 'Kendin Gir'}</span>
+            </Button>
+          )}
           {!session && step === 1 && (
             <Button 
               variant="outline" 
@@ -317,6 +385,16 @@ const SmartProfiler = ({ session, userProfile, onClose, onCancel, onRefreshProfi
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 w-full max-w-none overflow-y-auto">
         
+        {step === 'manual' && (
+          <ManualMeasurementsStep
+            category={category}
+            lang={lang}
+            unitSystem={unitSystem}
+            onCancel={() => setStep(1)}
+            onSave={handleManualSave}
+          />
+        )}
+
         {step === 1 && (
           <div className="w-full max-w-2xl space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <BrandSelectionStep 
