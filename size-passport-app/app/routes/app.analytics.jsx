@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+/* eslint-disable jsx-a11y/mouse-events-have-key-events */
+import { useState } from "react";
 import { useLoaderData, Link } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
@@ -72,7 +73,6 @@ export const loader = async ({ request }) => {
 export default function AnalyticsDashboard() {
   const {
     shop,
-    events,
     activeProductsCount,
     totalRecommendations,
     totalAddToCart,
@@ -85,8 +85,6 @@ export default function AnalyticsDashboard() {
 
   const [visibleEventCount, setVisibleEventCount] = useState(15);
   const visibleEvents = safeEvents.slice(0, visibleEventCount);
-
-  const [timeRange, setTimeRange] = useState("all");
 
   return (
     <s-page heading="Size Passport Analytics & Metrics">

@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/mouse-events-have-key-events */
 import { useState, useMemo, useEffect } from "react";
 import { useLoaderData, Link, useSubmit, useActionData, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -271,7 +272,7 @@ export const action = async ({ request }) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
 
   // 1. Mağazayı al veya oluştur

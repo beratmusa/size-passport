@@ -1,4 +1,5 @@
 import { authenticate } from "../shopify.server";
+/* global Buffer */
 import { supabase } from "../supabase.server";
 import { extractSizeChartFromImage } from "../utils/gemini.server.js";
 

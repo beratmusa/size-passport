@@ -360,10 +360,15 @@ export default function Home() {
                 </div>
                 
                 <h3 className="text-xl md:text-2xl font-bold mb-2 text-slate-900 dark:text-white mt-2">Pro Plan</h3>
-                <div className="flex items-center justify-center gap-1 mb-6 text-slate-900 dark:text-white">
-                  <span className="text-2xl font-semibold mt-[-8px]">$</span>
-                  <span className="text-5xl md:text-6xl font-bold tracking-tight">14.99</span>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium ml-1 text-sm md:text-base">/ month</span>
+                <div className="flex flex-col items-center justify-center mb-6">
+                  <div className="flex items-center justify-center gap-1 text-slate-900 dark:text-white">
+                    <span className="text-2xl font-semibold mt-[-8px]">$</span>
+                    <span className="text-5xl md:text-6xl font-bold tracking-tight">14.99</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium ml-1 text-sm md:text-base">/ month</span>
+                  </div>
+                  <div className="mt-2 inline-block bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
+                    14-Day Free Trial
+                  </div>
                 </div>
                 
                 <ul className="space-y-4 mb-8 text-left">
@@ -382,8 +387,103 @@ export default function Home() {
                 </ul>
                 
                 <button className="w-full bg-brand-lime text-slate-900 font-bold px-6 py-4 rounded-full text-base hover:scale-105 transition-transform shadow-[0_0_20px_rgba(178,230,56,0.4)]">
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Competitor Comparison Section */}
+        <section className="py-16 md:py-24 relative">
+          <div className="max-w-6xl mx-auto px-4 md:px-0">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12 md:mb-16"
+            >
+              <h2 className="text-3xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white">How We Compare</h2>
+              <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-base md:text-lg">
+                See why Size Passport is the perfect balance between smart AI recommendations and accessible pricing.
+              </p>
+            </motion.div>
+
+            <div className="overflow-x-auto pb-6">
+              <table className="w-full text-left border-collapse min-w-[800px] glass-panel rounded-2xl overflow-hidden">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm uppercase tracking-wider">
+                    <th className="p-4 md:p-6 font-semibold">Solution</th>
+                    <th className="p-4 md:p-6 font-semibold">Category</th>
+                    <th className="p-4 md:p-6 font-semibold">Price Range</th>
+                    <th className="p-4 md:p-6 font-semibold">What They Offer</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm md:text-base">
+                  {/* Basic Tier */}
+                  <tr className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 md:p-6 font-medium text-slate-900 dark:text-white">Basic Chart Apps</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Basic Size Charts</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">$5 – $12 / mo</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Basic static tables, manual input. No real AI recommendation engine.</td>
+                  </tr>
+                  
+                  {/* Our App */}
+                  <tr className="border-b-2 border-brand-lime/50 bg-emerald-50/50 dark:bg-brand-lime/5 relative">
+                    <td className="p-4 md:p-6 font-bold text-emerald-700 dark:text-brand-lime flex items-center gap-3">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                        <Image src="/logo.jpg" alt="Size Passport" fill className="object-cover" />
+                      </div>
+                      Size Passport
+                    </td>
+                    <td className="p-4 md:p-6 font-semibold text-emerald-700 dark:text-brand-lime">True AI Recommender</td>
+                    <td className="p-4 md:p-6 font-semibold text-emerald-700 dark:text-brand-lime">$14.99 / mo (Unlimited)</td>
+                    <td className="p-4 md:p-6 font-semibold text-emerald-700 dark:text-brand-lime">Unlimited AI recommendations, Smart Fit Profiler. No limits, fraction of the price.</td>
+                  </tr>
+                  
+                  {/* Mid-Tier AI */}
+                  <tr className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 md:p-6 font-medium text-slate-900 dark:text-white">Other AI Recommenders</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">AI Recommenders</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">$49.99 – $149.99+ / mo</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">AI sizing features but strictly limited by pageviews or visitors.</td>
+                  </tr>
+                  
+                  {/* Premium Tier */}
+                  <tr className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 md:p-6 font-medium text-slate-900 dark:text-white">Premium AI Solutions</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Premium Scanners</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">$115 – $695+ / mo</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Body scanners, aggressive per-order pricing models.</td>
+                  </tr>
+                  
+                  {/* Enterprise Tier */}
+                  <tr className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 md:p-6 font-medium text-slate-900 dark:text-white">Enterprise Tools</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Enterprise Solutions</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Custom Pricing</td>
+                    <td className="p-4 md:p-6 text-slate-600 dark:text-slate-400">Complex integrations for large brands with millions of sales data.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Price Map Summary */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-8 text-center bg-white/50 dark:bg-slate-900/50 rounded-2xl p-6 md:p-8 border border-black/5 dark:border-white/10 shadow-sm"
+            >
+              <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">The Pricing Sweet Spot</h3>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-sm md:text-base font-medium">
+                <span className="text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">Chart Apps ($5-$12)</span>
+                <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 rotate-90 md:rotate-0" />
+                <span className="text-emerald-700 dark:text-brand-lime bg-emerald-100 dark:bg-brand-lime/10 px-4 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(178,230,56,0.3)]">Size Passport ($14.99)</span>
+                <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 rotate-90 md:rotate-0" />
+                <span className="text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">AI Recommenders ($49+)</span>
+                <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 rotate-90 md:rotate-0" />
+                <span className="text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">Enterprise ($115+)</span>
               </div>
             </motion.div>
           </div>

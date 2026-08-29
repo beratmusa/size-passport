@@ -1,8 +1,8 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import { useLoaderData, useSubmit, useNavigation, useActionData, Link } from "react-router";
 import { authenticate } from "../shopify.server";
 import { supabase } from "../supabase.server";
 import { useState } from "react";
-import { t } from "../lib/i18n";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
