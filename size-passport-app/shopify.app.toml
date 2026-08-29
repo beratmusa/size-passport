@@ -2,7 +2,7 @@
 
 client_id = "ff837bf4f9599afe48d81c124f359644"
 name = "size-passport"
-application_url = "https://example.com"
+application_url = "https://size-passport.onrender.com"
 embedded = true
 
 [build]
@@ -36,7 +36,11 @@ api_version = "2026-07"
 scopes = "write_products,write_metaobjects,write_metaobject_definitions"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://size-passport.onrender.com/auth/callback",
+  "https://size-passport.onrender.com/auth/shopify/callback",
+  "https://size-passport.onrender.com/api/auth/callback"
+]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
