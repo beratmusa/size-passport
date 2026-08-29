@@ -312,11 +312,16 @@ export const loader = async ({ request }) => {
       console.error("Failed to auto-detect country code:", e);
     }
 
-    const { data: newShop } = await supabase
+    const { data: newShop, error: insertError } = await supabase
       .from("shops")
       .insert([{ shop_domain: shop, unit_system: defaultUnitSystem, language: defaultLanguage }])
       .select("id, metafield_namespace, metafield_key, unit_system, language")
       .single();
+
+    if (insertError) {
+      throw new Error(`Supabase Insert Error: ${insertError.message}`);
+    }
+    
     shopData = newShop;
   }
 
