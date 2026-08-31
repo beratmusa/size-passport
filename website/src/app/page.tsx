@@ -112,11 +112,11 @@ export default function Home() {
             </button>
           )}
 
-          <button className="bg-brand-lime text-slate-900 font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brand-lime/90 transition-all flex items-center gap-2 text-sm md:text-base shadow-[0_0_15px_rgba(178,230,56,0.3)] hover:scale-105">
+          <a href="https://apps.shopify.com" target="_blank" rel="noopener noreferrer" className="bg-brand-lime text-slate-900 font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brand-lime/90 transition-all flex items-center gap-2 text-sm md:text-base shadow-[0_0_15px_rgba(178,230,56,0.3)] hover:scale-105">
             <span className="hidden sm:inline">Get the App</span>
             <span className="sm:hidden">Get</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </a>
         </div>
       </nav>
 
@@ -142,12 +142,9 @@ export default function Home() {
               Real-time analytics, higher cart conversions, and proven return prevention—all in one smart Shopify app.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 md:gap-4">
-              <button className="w-full sm:w-auto bg-brand-lime text-slate-900 font-bold px-6 py-3.5 md:px-8 md:py-4 rounded-full text-base md:text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(178,230,56,0.3)] cursor-pointer">
+              <a href="https://apps.shopify.com" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto bg-brand-lime text-slate-900 font-bold px-6 py-3.5 md:px-8 md:py-4 rounded-full text-base md:text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(178,230,56,0.3)] cursor-pointer inline-flex items-center justify-center">
                 Start Free Trial
-              </button>
-              <button className="w-full sm:w-auto glass-panel px-6 py-3.5 md:px-8 md:py-4 rounded-full text-base md:text-lg font-bold text-slate-700 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer">
-                View Live Demo
-              </button>
+              </a>
             </div>
           </motion.div>
 
@@ -386,9 +383,9 @@ export default function Home() {
                   ))}
                 </ul>
                 
-                <button className="w-full bg-brand-lime text-slate-900 font-bold px-6 py-4 rounded-full text-base hover:scale-105 transition-transform shadow-[0_0_20px_rgba(178,230,56,0.4)]">
+                <a href="https://apps.shopify.com" target="_blank" rel="noopener noreferrer" className="w-full bg-brand-lime text-slate-900 font-bold px-6 py-4 rounded-full text-base hover:scale-105 transition-transform shadow-[0_0_20px_rgba(178,230,56,0.4)] inline-flex items-center justify-center">
                   Start 14-Day Free Trial
-                </button>
+                </a>
               </div>
             </motion.div>
           </div>
@@ -503,9 +500,9 @@ export default function Home() {
               <p className="text-base md:text-xl text-slate-600 dark:text-slate-300 mb-8 md:mb-10 leading-relaxed">
                 Join modern Shopify merchants using AI to solve the apparel sizing problem once and for all. Setup takes less than 5 minutes.
               </p>
-              <button className="w-full sm:w-auto bg-brand-lime text-slate-900 font-bold px-6 py-3.5 md:px-10 md:py-5 rounded-full text-base md:text-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(178,230,56,0.4)] cursor-pointer">
+              <a href="https://apps.shopify.com" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto bg-brand-lime text-slate-900 font-bold px-6 py-3.5 md:px-10 md:py-5 rounded-full text-base md:text-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(178,230,56,0.4)] cursor-pointer inline-flex items-center justify-center">
                 Install on Shopify Now
-              </button>
+              </a>
             </div>
           </motion.div>
         </section>
