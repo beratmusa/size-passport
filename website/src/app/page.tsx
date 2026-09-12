@@ -513,6 +513,9 @@ export default function Home() {
         <p className="font-medium">
           Contact us: <a href="mailto:sizepassportai@gmail.com" className="text-emerald-600 dark:text-brand-lime hover:underline cursor-pointer">sizepassportai@gmail.com</a>
         </p>
+        <div className="mt-2">
+          <a href="/privacy-policy" className="text-emerald-600 dark:text-brand-lime hover:underline cursor-pointer">Privacy Policy</a>
+        </div>
       </footer>
     </div>
   );

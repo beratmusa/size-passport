@@ -14,7 +14,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://size-passport.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sizepassport.com'),
   title: "Size Passport - AI-Powered Size Recommendation",
   description: "Reduce apparel returns and boost shopper confidence with our intelligent Smart Fit Profiler and AI Size Engine.",
   keywords: ["Shopify", "Shopify App", "Size Recommendation", "AI Fitting", "Reduce Returns", "Apparel Sizing", "E-commerce Optimization", "Fit Profiler"],
