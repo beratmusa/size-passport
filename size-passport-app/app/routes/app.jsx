@@ -10,18 +10,7 @@ import { t } from "../lib/i18n";
 export const loader = async ({ request }) => {
   const { billing, session } = await authenticate.admin(request);
   
-  // Test ödemesini zorlamak için BILLING_TEST_MODE kullanıyoruz
-  const isTest = process.env.BILLING_TEST_MODE === "true" || process.env.NODE_ENV !== "production";
 
-  await billing.require({
-    plans: [MONTHLY_PLAN],
-    isTest: isTest,
-    onFailure: async () => billing.request({
-      plan: MONTHLY_PLAN,
-      isTest: isTest,
-    }),
-  });
-  
   // Fetch language from Supabase
   let lang = 'en';
   if (session?.shop) {
