@@ -28,10 +28,10 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        <s-link href="/app/guide">{t('navGuide', lang)}</s-link>
-        <s-link href="/app">{t('navProducts', lang)}</s-link>
-        <s-link href="/app/analytics">{t('navAnalytics', lang)}</s-link>
-        <s-link href="/app/settings">{t('navSettings', lang)}</s-link>
+        <s-link href="/app/guide">Guide</s-link>
+        <s-link href="/app">Products</s-link>
+        <s-link href="/app/analytics">Analytics</s-link>
+        <s-link href="/app/settings">Settings</s-link>
       </s-app-nav>
       <Outlet />
     </AppProvider>
