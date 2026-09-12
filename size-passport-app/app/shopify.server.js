@@ -10,7 +10,7 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
-export const MONTHLY_PLAN = 'Monthly subscription';
+export const MONTHLY_PLAN = 'monthly-subscription';
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
