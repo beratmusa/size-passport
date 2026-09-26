@@ -5,8 +5,8 @@ export async function fetchActiveSubscription(shopId) {
   const appId = process.env.SHOPIFY_APP_GID; // Örn: gid://shopify/App/1234567
 
   if (!partnerToken || !orgId || !appId) {
-    console.warn("EKSİK BİLGİ: Shopify Partner API değişkenleri (.env) tanımlanmamış. Abonelik kontrolü atlanıyor (Test modunda geçici izin).");
-    return true; // Test aşamasında uygulamayı tamamen kitlememek için geçici olarak true dönebiliriz. Ancak canlıya almadan önce .env düzeltilmeli.
+    console.warn("EKSİK BİLGİ: Shopify Partner API değişkenleri (.env) tanımlanmamış. Ödeme planı sayfasına yönlendirilecek.");
+    return null;
   }
 
   const query = `
@@ -42,7 +42,8 @@ export async function fetchActiveSubscription(shopId) {
       console.error("Partner API Error:", json.errors);
       return null;
     }
-
+    
+    console.log("Partner API Active Subscription Check:", JSON.stringify(json.data?.activeSubscription));
     return json.data?.activeSubscription;
   } catch (error) {
     console.error("Failed to fetch active subscription:", error);
