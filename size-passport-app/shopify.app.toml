@@ -11,6 +11,11 @@ automatically_update_urls_on_dev = true
 [webhooks]
 api_version = "2026-07"
 
+  [webhooks.privacy_compliance]
+  customer_deletion_url = "https://size-passport.onrender.com/webhooks/app/uninstalled"
+  customer_data_request_url = "https://size-passport.onrender.com/webhooks/app/uninstalled"
+  shop_deletion_url = "https://size-passport.onrender.com/webhooks/app/uninstalled"
+
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]

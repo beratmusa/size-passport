@@ -2,14 +2,33 @@ import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
+import { fetchActiveSubscription } from "./partner-api.server";
 
 import { supabase } from "../supabase.server";
 import { t } from "../lib/i18n";
 
 /* global process */
 export const loader = async ({ request }) => {
-  const { billing, session } = await authenticate.admin(request);
+  const { admin, session, redirect } = await authenticate.admin(request);
   
+  // App Handle: Shopify Partner Dashboard'daki uygulama adınız (URL'deki uzantı)
+  const appHandle = process.env.SHOPIFY_APP_HANDLE || "size-passport"; 
+  const storeHandle = session.shop.replace(".myshopify.com", "");
+
+  const shopResponse = await admin.graphql(`{ shop { id } }`);
+  const shopResponseJson = await shopResponse.json();
+  const shopId = shopResponseJson.data?.shop?.id;
+
+  if (shopId) {
+    const subscription = await fetchActiveSubscription(shopId);
+    
+    // Aktif bir abonelik yoksa (ve Partner API ayarları yapılmışsa) plana yönlendir.
+    if (!subscription && process.env.SHOPIFY_PARTNER_API_ACCESS_TOKEN) {
+      return redirect(`https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`, {
+        target: "_top", // Uygulama dışı bir Shopify sayfasına yönlendirdiğimiz için _top olmalı
+      });
+    }
+  }
 
   // Fetch language from Supabase
   let lang = 'en';

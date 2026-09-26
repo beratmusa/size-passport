@@ -14,15 +14,19 @@ export const action = async ({ request }) => {
   }
 
   try {
-    // 1. Fetch images from Shopify
+    // 1. Fetch images from Shopify using the modern media API
     const response = await admin.graphql(
       `#graphql
-      query getProductImages($id: ID!) {
+      query getProductMedia($id: ID!) {
         product(id: $id) {
-          images(last: 2) {
+          media(first: 10) {
             edges {
               node {
-                url
+                ... on MediaImage {
+                  image {
+                    url
+                  }
+                }
               }
             }
           }
@@ -31,15 +35,22 @@ export const action = async ({ request }) => {
       { variables: { id: `gid://shopify/Product/${shopifyProductId}` } }
     );
 
-    const { data } = await response.json();
-    const images = data.product?.images?.edges || [];
+    const { data, errors } = await response.json();
     
-    if (images.length === 0) {
+    if (errors || !data?.product) {
+      console.error("GraphQL Error:", errors);
+      return Response.json({ success: false, error: "Could not find product on Shopify. (Missing permissions or deleted)" });
+    }
+
+    const mediaEdges = data.product.media?.edges || [];
+    const imageEdges = mediaEdges.filter(edge => edge.node?.image?.url);
+
+    if (imageEdges.length === 0) {
       return Response.json({ success: false, error: "No images found for this product." });
     }
 
     // Genelde beden tablosu son resimdedir. Son resmi al.
-    const imageUrl = images[images.length - 1].node.url;
+    const imageUrl = imageEdges[imageEdges.length - 1].node.image.url;
 
     // 2. Fetch the image to buffer
     const imgResponse = await fetch(imageUrl);

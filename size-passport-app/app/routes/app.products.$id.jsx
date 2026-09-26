@@ -90,6 +90,13 @@ export const action = async ({ request, params }) => {
       console.error("Supabase Error:", error);
       return { error: error.message };
     }
+    
+    // Ürünün statüsünü ACTIVE olarak güncelle ki dashboard'da Missing Data yazmasın
+    await supabase
+      .from("merchant_products")
+      .update({ size_status: 'ACTIVE', data_source: 'MANUAL' })
+      .eq("id", id);
+      
   } else if (actionType === "update_category") {
     const category = formData.get("category");
     const { error } = await supabase
