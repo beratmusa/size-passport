@@ -20,6 +20,25 @@ export const loader = async ({ request }) => {
   const shopId = shopResponseJson.data?.shop?.id;
 
   if (shopId) {
+    // GEÇİCİ KOD: Videoyu çekebilmeniz için aboneliği iptal etme tetikleyicisi
+    const url = new URL(request.url);
+    if (url.searchParams.get("cancel_billing") === "true") {
+      console.log("Canceling all active subscriptions for video recording...");
+      const subRes = await admin.graphql(`{ currentAppInstallation { activeSubscriptions { id } } }`);
+      const subJson = await subRes.json();
+      const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
+      
+      for (const sub of activeSubs) {
+        await admin.graphql(`
+          mutation appSubscriptionCancel($id: ID!) {
+            appSubscriptionCancel(id: $id) { appSubscription { id status } }
+          }
+        `, { variables: { id: sub.id } });
+        console.log(`Canceled subscription: ${sub.id}`);
+      }
+      return redirect("/app"); // İptal ettikten sonra sayfayı yenile
+    }
+
     const subscription = await fetchActiveSubscription(shopId);
     
     // Aktif bir abonelik yoksa (ve Partner API ayarları yapılmışsa) plana yönlendir.
