@@ -22,17 +22,12 @@ export const loader = async ({ request }) => {
   if (shopId) {
     const subscription = await fetchActiveSubscription(shopId);
     
-    // --- GEÇİCİ VİDEO KODU BAŞLANGICI ---
-    // Sadece video çekimi için: Eğer URL'de 'charge_id' yoksa her halükarda ödeme ekranına yönlendir.
-    const url = new URL(request.url);
-    const hasChargeId = url.searchParams.has("charge_id");
-
-    if (!hasChargeId && process.env.SHOPIFY_PARTNER_API_ACCESS_TOKEN) {
+    // Aktif bir abonelik yoksa (ve Partner API ayarları yapılmışsa) plana yönlendir.
+    if (!subscription && process.env.SHOPIFY_PARTNER_API_ACCESS_TOKEN) {
       return redirect(`https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`, {
-        target: "_top", 
+        target: "_top", // Uygulama dışı bir Shopify sayfasına yönlendirdiğimiz için _top olmalı
       });
     }
-    // --- GEÇİCİ VİDEO KODU BİTİŞİ ---
   }
 
   // Fetch language from Supabase
