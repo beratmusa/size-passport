@@ -78,7 +78,8 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
     if (data) setUserProfile(data);
   };
 
-  const handleSmartCheck = () => {
+  const handleSmartCheck = (e) => {
+    if (e) e.preventDefault();
     try {
       supabase.from('analytics_events').insert({
         user_id: session?.user?.id || null,
@@ -113,7 +114,8 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
     }
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
     await supabase.auth.signInWithOAuth({ provider: 'google' });
   };
 
@@ -436,6 +438,7 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
         }
       `}</style>
       <button 
+        type="button"
         onClick={handleSmartCheck}
         style={ctaStyle}
         className="group size-passport-cta-button transition-all duration-300 text-sm md:text-base"

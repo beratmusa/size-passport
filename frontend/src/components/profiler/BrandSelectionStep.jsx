@@ -7,8 +7,8 @@ const BrandSelectionStep = ({ selectedGender, setSelectedGender, brands, loading
       {!hideGenderSelection && (
         <div className="flex justify-center mb-6">
           <div className="bg-zinc-100 p-1 rounded-full flex gap-1">
-             <button onClick={() => setSelectedGender('women')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'women' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('women', lang)}</button>
-             <button onClick={() => setSelectedGender('men')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'men' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('men', lang)}</button>
+             <button type="button" onClick={() => setSelectedGender('women')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'women' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('women', lang)}</button>
+             <button type="button" onClick={() => setSelectedGender('men')} className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${selectedGender === 'men' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>{t('men', lang)}</button>
           </div>
         </div>
       )}
@@ -19,7 +19,7 @@ const BrandSelectionStep = ({ selectedGender, setSelectedGender, brands, loading
       ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto">
           {brands.map((brand) => (
-              <button key={brand.id} onClick={() => onSelectBrand(brand.id)} className="group flex flex-col items-center justify-center p-6 rounded-2xl border border-zinc-200 hover:border-zinc-900 hover:bg-zinc-50 transition-all duration-300">
+              <button type="button" key={brand.id} onClick={() => onSelectBrand(brand.id)} className="group flex flex-col items-center justify-center p-6 rounded-2xl border border-zinc-200 hover:border-zinc-900 hover:bg-zinc-50 transition-all duration-300">
               <span className="text-lg font-medium text-zinc-700 group-hover:text-zinc-900">{brand.name}</span>
               </button>
           ))}

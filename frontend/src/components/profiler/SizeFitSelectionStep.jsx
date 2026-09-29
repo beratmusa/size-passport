@@ -80,7 +80,7 @@ const SizeFitSelectionStep = ({
             const label = typeof s === 'string' ? s : s.label;
             const sysKey = typeof s === 'string' ? s : `${s.rawSize}-${s.system || 'all'}`;
             return (
-              <button key={sysKey} onClick={() => setSelectedSize(label)} className={`h-10 rounded-lg text-sm font-medium border transition-all flex-shrink-0 ${selectedSize === label ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
+              <button type="button" key={sysKey} onClick={() => setSelectedSize(label)} className={`h-10 rounded-lg text-sm font-medium border transition-all flex-shrink-0 ${selectedSize === label ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'}`}>
                 {label}
               </button>
             );

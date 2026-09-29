@@ -217,6 +217,7 @@ const FitAnalyzer = ({ userProfile, onClose, onUpdateProfile, onProfileDeleted, 
             )}
 
             <button 
+              type="button"
               onClick={onUpdateProfile} 
               className="flex items-center justify-center rounded-full border border-zinc-200 hover:bg-zinc-100 transition-colors h-8 px-3 text-[11px] font-medium md:h-9 md:px-4 md:text-xs md:font-semibold text-zinc-800"
             >
