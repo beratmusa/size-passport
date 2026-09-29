@@ -17,7 +17,14 @@ export const loader = async ({ request }) => {
     }
   }
 
-  if (shop) {
+  const isEmbedded = url.searchParams.get("embedded") === "1";
+
+  if (isEmbedded && shop) {
+    // Zaten iframe içindeyiz, uygulamanın asıl rotasına yönlendir.
+    url.searchParams.set("shop", shop);
+    throw redirect(`/app?${url.searchParams.toString()}`);
+  } else if (shop) {
+    // İframe dışındayız (Ödeme onayından veya dışarıdan gelindi). Admin paneline yönlendirerek re-embed yap.
     const shopHandle = shop.replace(".myshopify.com", "");
     const appHandle = process.env.SHOPIFY_APP_HANDLE || "size-passport";
     throw redirect(`https://admin.shopify.com/store/${shopHandle}/apps/${appHandle}`);
