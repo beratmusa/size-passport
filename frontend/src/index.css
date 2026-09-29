@@ -2,16 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-#size-passport-root {
+.size-passport-wrapper {
   /* Scoped Reset - Sadece widget içinde çalışacak temel ayarlar */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-#size-passport-root *, 
-#size-passport-root *::before, 
-#size-passport-root *::after {
+.size-passport-wrapper *, 
+.size-passport-wrapper *::before, 
+.size-passport-wrapper *::after {
   box-sizing: border-box;
   border-width: 0;
   border-style: solid;

@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ["class"],
-    important: '#size-passport-root',
+    important: '.size-passport-wrapper',
     corePlugins: {
       preflight: false,
     },

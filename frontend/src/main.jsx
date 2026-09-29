@@ -8,9 +8,9 @@ function initSizePassport() {
   const container = document.getElementById('size-passport-root');
 
   if (container) {
-    // Prevent double initialization
     if (container.dataset.rendered === 'true') return;
     container.dataset.rendered = 'true';
+    container.classList.add('size-passport-wrapper');
 
     const productId = container.dataset.productId;
     const productTitle = container.dataset.productTitle;
