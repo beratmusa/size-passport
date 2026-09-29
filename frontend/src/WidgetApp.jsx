@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from './supabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { predictBestSize } from './lib/size-engine';
@@ -474,8 +475,8 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
       {/* MODALS */}
       
       {/* 0. LOGIN MODAL */}
-      {activeModal === 'login' && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
+      {activeModal === 'login' && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
           <div className="bg-white w-full max-sm rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative">
             <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -489,12 +490,13 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
               {t('continueGoogle', product?.shops?.language || 'en')}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 1. AKILLI PROFİL SİHİRBAZI */}
-      {activeModal === 'wizard' && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4">
+      {activeModal === 'wizard' && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
           <div className="bg-white w-full max-w-2xl lg:max-w-4xl rounded-2xl shadow-2xl overflow-hidden h-auto max-h-[90vh]">
             <SmartProfiler 
               session={session}               
@@ -513,10 +515,6 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
                 localStorage.setItem('size_passport_guest_profile', JSON.stringify(profile));
               }}
               onClose={() => {
-                // Determine if we should go to analyzer based on whether we have a profile.
-                // Note: userProfile might not be instantly available in this closure, 
-                // so we can rely on setActiveModal logic. Actually if we check userProfile it might be stale.
-                // Let's just use a functional state update to safely check the latest state.
                 setActiveModal(prev => {
                   return 'analyzer'; // We'll just transition to analyzer if they saved.
                 });
@@ -524,12 +522,13 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
               onCancel={() => setActiveModal('none')}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 2. BEDEN ANALİZ EKRANI */}
-      {activeModal === 'analyzer' && selectedProductData && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+      {activeModal === 'analyzer' && selectedProductData && createPortal(
+        <div className="fixed inset-0 z-[1000000] flex items-center justify-center size-passport-modal-portal">
             <FitAnalyzer 
                 userProfile={userProfile} 
                 productData={selectedProductData} 
@@ -545,7 +544,8 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
                 }}
                 onClose={() => setActiveModal('none')} 
             />
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
