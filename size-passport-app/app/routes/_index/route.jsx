@@ -5,7 +5,20 @@ import styles from "./styles.module.css";
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
 
-  if (url.searchParams.get("shop")) {
+  let shop = url.searchParams.get("shop");
+
+  if (!shop) {
+    const cookieHeader = request.headers.get("Cookie");
+    if (cookieHeader) {
+      const match = cookieHeader.match(/billing_shop=([^;]+)/);
+      if (match) {
+        shop = match[1];
+      }
+    }
+  }
+
+  if (shop) {
+    url.searchParams.set("shop", shop);
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 

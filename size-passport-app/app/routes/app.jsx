@@ -26,6 +26,9 @@ export const loader = async ({ request }) => {
     if (!subscription && process.env.SHOPIFY_PARTNER_API_ACCESS_TOKEN) {
       return redirect(`https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`, {
         target: "_top", // Uygulama dışı bir Shopify sayfasına yönlendirdiğimiz için _top olmalı
+        headers: {
+          "Set-Cookie": `billing_shop=${session.shop}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600`,
+        },
       });
     }
   }
