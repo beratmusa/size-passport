@@ -18,17 +18,17 @@
   border-color: #e5e7eb;
 }
 
-#size-passport-root button {
+.size-passport-wrapper button {
   background-color: transparent;
   color: inherit;
   font-family: inherit;
   -webkit-appearance: button;
 }
 
-#size-passport-root .bg-primary { background-color: #18181b; }
-#size-passport-root .text-primary-foreground { color: #fafafa; }
-#size-passport-root .bg-secondary { background-color: #f4f4f5; }
-#size-passport-root .text-secondary-foreground { color: #18181b; }
+.size-passport-wrapper .bg-primary { background-color: #18181b; }
+.size-passport-wrapper .text-primary-foreground { color: #fafafa; }
+.size-passport-wrapper .bg-secondary { background-color: #f4f4f5; }
+.size-passport-wrapper .text-secondary-foreground { color: #18181b; }
 
 /* Select ve Modal içerikleri için portal üzerinden gelen kısımlar */
 .bg-popover { background-color: #ffffff !important; }
