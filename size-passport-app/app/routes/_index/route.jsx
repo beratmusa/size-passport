@@ -18,8 +18,9 @@ export const loader = async ({ request }) => {
   }
 
   if (shop) {
-    url.searchParams.set("shop", shop);
-    throw redirect(`/app?${url.searchParams.toString()}`);
+    const shopHandle = shop.replace(".myshopify.com", "");
+    const appHandle = process.env.SHOPIFY_APP_HANDLE || "size-passport";
+    throw redirect(`https://admin.shopify.com/store/${shopHandle}/apps/${appHandle}`);
   }
 
   return { showForm: Boolean(login) };
