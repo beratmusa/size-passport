@@ -479,19 +479,22 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
       
       {/* 0. LOGIN MODAL */}
       {activeModal === 'login' && createPortal(
-        <div className="size-passport-wrapper fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
-          <div className="bg-white w-full max-sm rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative">
-            <button onClick={() => setActiveModal('none')} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 className="text-2xl font-bold mb-2">SizePassport</h2>
-            <p className="text-zinc-500 mb-6 text-sm">{t('loginRequired', product?.shops?.language || 'en')}</p>
-            <button 
-              onClick={handleLogin}
-              className="w-full bg-zinc-900 text-white py-3 rounded-xl font-medium hover:bg-zinc-800 transition-colors"
-            >
-              {t('continueGoogle', product?.shops?.language || 'en')}
-            </button>
+        <div className="size-passport-wrapper">
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
+            <div className="bg-white w-full max-sm rounded-2xl shadow-2xl overflow-hidden p-8 text-center relative">
+              <button type="button" onClick={() => setActiveModal('none')} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-800 rounded-full hover:bg-zinc-100">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+              <h2 className="text-2xl font-bold mb-2">SizePassport</h2>
+              <p className="text-zinc-500 mb-6 text-sm">{t('loginRequired', product?.shops?.language || 'en')}</p>
+              <button 
+                type="button"
+                onClick={handleLogin}
+                className="w-full bg-zinc-900 text-white py-3 rounded-xl font-medium hover:bg-zinc-800 transition-colors"
+              >
+                {t('continueGoogle', product?.shops?.language || 'en')}
+              </button>
+            </div>
           </div>
         </div>,
         document.body
@@ -499,31 +502,33 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
 
       {/* 1. AKILLI PROFİL SİHİRBAZI */}
       {activeModal === 'wizard' && createPortal(
-        <div className="size-passport-wrapper fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
-          <div className="bg-white w-full max-w-2xl lg:max-w-4xl rounded-2xl shadow-2xl overflow-hidden h-auto max-h-[90vh]">
-            <SmartProfiler 
-              session={session}               
-              productCategory={product?.category || 'tops'}
-              productSubCategory={product?.sub_category || 't-shirt'}
-              productFit={product?.fit_type || 'regular'}
-              productGender={product?.gender || null}
-              productName={product?.name || productTitle}
-              userProfile={userProfile}
-              lang={product?.shops?.language || 'en'}
-              unitSystem={product?.shops?.unit_system || 'cm'}
+        <div className="size-passport-wrapper">
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4 size-passport-modal-portal">
+            <div className="bg-white w-full max-w-2xl lg:max-w-4xl rounded-2xl shadow-2xl overflow-hidden h-auto max-h-[90vh]">
+              <SmartProfiler 
+                session={session}               
+                productCategory={product?.category || 'tops'}
+                productSubCategory={product?.sub_category || 't-shirt'}
+                productFit={product?.fit_type || 'regular'}
+                productGender={product?.gender || null}
+                productName={product?.name || productTitle}
+                userProfile={userProfile}
+                lang={product?.shops?.language || 'en'}
+                unitSystem={product?.shops?.unit_system || 'cm'}
 
-              onRefreshProfile={() => session && fetchUserProfile(session.user.id)}
-              onGuestProfileCreated={(profile) => {
-                setUserProfile(profile);
-                localStorage.setItem('size_passport_guest_profile', JSON.stringify(profile));
-              }}
-              onClose={() => {
-                setActiveModal(prev => {
-                  return 'analyzer'; // We'll just transition to analyzer if they saved.
-                });
-              }} 
-              onCancel={() => setActiveModal('none')}
-            />
+                onRefreshProfile={() => session && fetchUserProfile(session.user.id)}
+                onGuestProfileCreated={(profile) => {
+                  setUserProfile(profile);
+                  localStorage.setItem('size_passport_guest_profile', JSON.stringify(profile));
+                }}
+                onClose={() => {
+                  setActiveModal(prev => {
+                    return 'analyzer'; // We'll just transition to analyzer if they saved.
+                  });
+                }} 
+                onCancel={() => setActiveModal('none')}
+              />
+            </div>
           </div>
         </div>,
         document.body
@@ -531,22 +536,24 @@ export default function WidgetApp({ productId, productTitle, shopDomain, shopify
 
       {/* 2. BEDEN ANALİZ EKRANI */}
       {activeModal === 'analyzer' && selectedProductData && createPortal(
-        <div className="size-passport-wrapper fixed inset-0 z-[1000000] flex items-center justify-center size-passport-modal-portal">
-            <FitAnalyzer 
-                userProfile={userProfile} 
-                productData={selectedProductData} 
-                onUpdateProfile={() => setActiveModal('wizard')} 
-                onProfileDeleted={() => {
-                  setUserProfile(null);
-                  localStorage.removeItem('size_passport_guest_profile');
-                  setActiveModal('wizard');
-                }}
-                onProfileUpdated={(updatedProfile) => {
-                  setUserProfile(updatedProfile);
-                  localStorage.setItem('size_passport_guest_profile', JSON.stringify(updatedProfile));
-                }}
-                onClose={() => setActiveModal('none')} 
-            />
+        <div className="size-passport-wrapper">
+          <div className="fixed inset-0 z-[1000000] flex items-center justify-center size-passport-modal-portal">
+              <FitAnalyzer 
+                  userProfile={userProfile} 
+                  productData={selectedProductData} 
+                  onUpdateProfile={() => setActiveModal('wizard')} 
+                  onProfileDeleted={() => {
+                    setUserProfile(null);
+                    localStorage.removeItem('size_passport_guest_profile');
+                    setActiveModal('wizard');
+                  }}
+                  onProfileUpdated={(updatedProfile) => {
+                    setUserProfile(updatedProfile);
+                    localStorage.setItem('size_passport_guest_profile', JSON.stringify(updatedProfile));
+                  }}
+                  onClose={() => setActiveModal('none')} 
+              />
+          </div>
         </div>,
         document.body
       )}
