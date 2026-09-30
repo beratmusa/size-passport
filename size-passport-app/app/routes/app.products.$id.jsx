@@ -1,7 +1,7 @@
 import { useLoaderData, useSubmit } from "react-router";
 import { authenticate } from "../shopify.server";
 import { supabase } from "../supabase.server";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const loader = async ({ request, params }) => {
   await authenticate.admin(request);
@@ -153,10 +153,21 @@ export default function ProductDetail() {
     return 'top'; // Default to top if unknown
   };
 
-  const currentCategory = product.category?.toLowerCase() === 'top' || product.category?.toLowerCase() === 'bottom' 
+  const [localCategory, setLocalCategory] = useState(
+    product.category?.toLowerCase() === 'top' || product.category?.toLowerCase() === 'bottom' 
     ? product.category.toLowerCase() 
-    : detectCategory(product.category);
+    : detectCategory(product.category)
+  );
 
+  useEffect(() => {
+    setLocalCategory(
+      product.category?.toLowerCase() === 'top' || product.category?.toLowerCase() === 'bottom' 
+      ? product.category.toLowerCase() 
+      : detectCategory(product.category)
+    );
+  }, [product.category]);
+
+  const currentCategory = localCategory;
   const isTop = currentCategory === 'top';
 
   const shopUnitSystem = product?.shops?.unit_system || 'metric';
@@ -172,9 +183,11 @@ export default function ProductDetail() {
   };
 
   const handleCategoryChange = (e) => {
+    const newCat = e.currentTarget.value;
+    setLocalCategory(newCat);
     const fd = new FormData();
     fd.append("actionType", "update_category");
-    fd.append("category", e.currentTarget.value);
+    fd.append("category", newCat);
     submit(fd, { method: "post" });
   };
 
