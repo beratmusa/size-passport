@@ -41,13 +41,30 @@ export const action = async ({ request, params }) => {
     const measurements = JSON.parse(measurementsJson);
 
     const sizeOrderMap = {
-      "xxs": 1, "xs": 2, "s": 3, "m": 4, "l": 5, "xl": 6, "xxl": 7, "2xl": 7, "3xl": 8, "4xl": 9, "5xl": 10,
-      "24": 24, "25": 25, "26": 26, "27": 27, "28": 28, "29": 29, "30": 30, "31": 31, "32": 32, "33": 33, 
-      "34": 34, "36": 36, "38": 38, "40": 40, "42": 42, "44": 44, "46": 46, "48": 48, "50": 50, "52": 52,
-      "54": 54, "56": 56, "58": 58, "60": 60
+      "xxs": 1, "xs": 2, "s": 3, "m": 4, "l": 5, "xl": 6, "xxl": 7, "2xl": 7, "3xl": 8, "4xl": 9, "5xl": 10
     };
     const normalizedLabel = sizeLabel.toLowerCase();
-    const sortOrder = sizeOrderMap[normalizedLabel] || parseInt(normalizedLabel) || 99;
+    
+    let sortOrder = sizeOrderMap[normalizedLabel];
+    if (sortOrder === undefined) {
+      if (normalizedLabel.includes('x')) {
+        const parts = normalizedLabel.split('x');
+        const w = parseInt(parts[0]);
+        const l = parseInt(parts[1]);
+        if (!isNaN(w) && !isNaN(l)) {
+          sortOrder = w * 1000 + l;
+        }
+      } else {
+        const num = parseInt(normalizedLabel);
+        if (!isNaN(num)) {
+          sortOrder = num * 1000;
+        }
+      }
+    }
+    
+    // Scale up predefined sizes to fit with WxL scaled logic if needed, 
+    // but predefined sizes are 1-10, so they will naturally sort before 29000
+    sortOrder = sortOrder || 99999;
 
     // Manual Upsert: First check if it exists to avoid 42P10 error if unique constraint is missing
     const { data: existingSize } = await supabase
