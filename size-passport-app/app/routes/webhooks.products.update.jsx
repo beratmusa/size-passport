@@ -58,11 +58,15 @@ export const action = async ({ request }) => {
     // Update product by shopify_product_id
     const { data: existingProduct } = await supabase
       .from("merchant_products")
-      .select("id")
+      .select("id, data_source")
       .eq("shopify_product_id", payload.id.toString())
       .maybeSingle();
 
     if (existingProduct) {
+      if (existingProduct.data_source === 'MANUAL') {
+        delete productData.category;
+        delete productData.sub_category;
+      }
       const { error } = await supabase
         .from("merchant_products")
         .update(productData)

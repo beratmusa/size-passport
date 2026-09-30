@@ -41,20 +41,13 @@ export const action = async ({ request, params }) => {
     const measurements = JSON.parse(measurementsJson);
 
     const sizeOrderMap = {
-      "xxs": 1,
-      "xs": 2,
-      "s": 3,
-      "m": 4,
-      "l": 5,
-      "xl": 6,
-      "xxl": 7,
-      "2xl": 7,
-      "3xl": 8,
-      "4xl": 9,
-      "5xl": 10
+      "xxs": 1, "xs": 2, "s": 3, "m": 4, "l": 5, "xl": 6, "xxl": 7, "2xl": 7, "3xl": 8, "4xl": 9, "5xl": 10,
+      "24": 24, "25": 25, "26": 26, "27": 27, "28": 28, "29": 29, "30": 30, "31": 31, "32": 32, "33": 33, 
+      "34": 34, "36": 36, "38": 38, "40": 40, "42": 42, "44": 44, "46": 46, "48": 48, "50": 50, "52": 52,
+      "54": 54, "56": 56, "58": 58, "60": 60
     };
     const normalizedLabel = sizeLabel.toLowerCase();
-    const sortOrder = sizeOrderMap[normalizedLabel] || 99;
+    const sortOrder = sizeOrderMap[normalizedLabel] || parseInt(normalizedLabel) || 99;
 
     // Manual Upsert: First check if it exists to avoid 42P10 error if unique constraint is missing
     const { data: existingSize } = await supabase
